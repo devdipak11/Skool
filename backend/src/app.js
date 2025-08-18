@@ -19,9 +19,25 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Setup CORS origins from environment. FRONTEND_URLS can be comma separated list.
+const frontendUrlsRaw = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
+let corsOrigins = [];
+if (frontendUrlsRaw && frontendUrlsRaw.trim()) {
+  corsOrigins = frontendUrlsRaw.split(',').map(s => s.trim()).filter(Boolean);
+}
+// Fallback to previous localhosts if none provided
+if (!corsOrigins.length) {
+  corsOrigins = ['http://localhost:8080', 'http://localhost:5173'];
+}
+
+// Allow wildcard if explicitly set
+if (process.env.ALLOW_ALL_ORIGINS === 'true') {
+  corsOrigins.push('*');
+}
+
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:5173', '*'],
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
