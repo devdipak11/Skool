@@ -406,18 +406,18 @@ export default function LoginPage() {
           min-h-screen
           flex flex-col items-center
           ${typeof window !== "undefined" && window.innerWidth < 640
-            ? 'max-w-[380px] mx-auto rounded-none shadow-none px-0 py-0'
-            : 'sm:max-w-xl sm:animate-fade-in rounded-3xl shadow-xl px-0 py-0'
+            ? 'max-w-full mx-0 rounded-none shadow-none px-0 py-0 h-screen bg-white'
+            : 'sm:max-w-2xl sm:animate-fade-in rounded-3xl shadow-xl px-0 py-0 bg-[#e3f0fc]'
           }
-          bg-[#e3f0fc]
         `}
         style={{
-          minHeight: '100vh',
-          maxWidth: typeof window !== "undefined" && window.innerWidth < 640 ? 380 : undefined,
-          marginLeft: typeof window !== "undefined" && window.innerWidth < 640 ? 'auto' : undefined,
-          marginRight: typeof window !== "undefined" && window.innerWidth < 640 ? 'auto' : undefined,
+          minHeight: typeof window !== "undefined" && window.innerWidth < 640 ? '100dvh' : '100vh',
+          maxWidth: typeof window !== "undefined" && window.innerWidth < 640 ? '100vw' : undefined,
+          marginLeft: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : undefined,
+          marginRight: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : undefined,
           borderRadius: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : undefined,
           boxShadow: typeof window !== "undefined" && window.innerWidth < 640 ? 'none' : undefined,
+          background: typeof window !== "undefined" && window.innerWidth < 640 ? '#fff' : '#e3f0fc',
         }}
       >
         {/* School heading and icon at the top */}
@@ -426,7 +426,7 @@ export default function LoginPage() {
             <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight" style={{ fontWeight: 900 }}>
-            TAGORE PUBLIC SCHOOL
+            Tagore Public School
           </h1>
           <p className="text-muted-foreground mt-2">School Management System</p>
         </div>
@@ -474,14 +474,14 @@ export default function LoginPage() {
         <div
           className={`
             w-full flex flex-col items-center px-0 sm:px-6
+            ${typeof window !== "undefined" && window.innerWidth < 640 ? 'h-full justify-center' : ''}
           `}
         >
           <Card className={`
             w-full
             shadow-lg
             border-0 bg-white/95 backdrop-blur-sm
-            ${typeof window !== "undefined" && window.innerWidth < 640 ? 'rounded-none shadow-lg border-none' : 'rounded-2xl'}
-            px-2 py-4 sm:px-8 sm:py-8
+            ${typeof window !== "undefined" && window.innerWidth < 640 ? 'rounded-none shadow-none border-none bg-white px-2 py-4 min-h-[60vh]' : 'rounded-2xl px-2 py-4 sm:px-8 sm:py-8'}
             max-w-full
           `}>
             <CardHeader className="space-y-1">
