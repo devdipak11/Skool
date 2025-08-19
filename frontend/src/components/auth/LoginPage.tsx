@@ -482,7 +482,7 @@ export default function LoginPage() {
                     />
                   </div>
                   <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    Admin and Faculty can log in directly. Only new students have to register.
+                    Admin and Faculty can log in directly. Only new students have to register. contact us:-9204520826
                   </div>
                   {/* Add the login button here */}
                   <Button
