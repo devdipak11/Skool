@@ -34,11 +34,11 @@ exports.getAssignedSubjectDetails = async (req, res) => {
         }
 
         // Find students registered in this subject
-        const students = await require('../models/Student').find({ subjects: subjectId }).select('name');
+        const students = await require('../models/Student').find({ subjects: subjectId }).select('name rollNo');
         res.status(200).json({
             subject,
             studentCount: students.length,
-            students: students.map(s => s.name)
+            students // now includes name and rollNo for each student
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching subject details', error });

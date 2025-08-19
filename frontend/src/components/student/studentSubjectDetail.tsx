@@ -25,6 +25,7 @@ export default function StudentSubjectDetail() {
   const [editCommentId, setEditCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [expandedComments, setExpandedComments] = useState<{ [announcementId: string]: boolean }>({});
+  const [students, setStudents] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +37,18 @@ export default function StudentSubjectDetail() {
         if (!subjectRes.ok) throw new Error('Failed to fetch subject details');
         const subjectData = await subjectRes.json();
         setSubject(subjectData);
+
+        // Fetch enrolled students for this subject (student endpoint)
+        let studentsList = [];
+        try {
+          const studentsRes = await fetch(`/api/students/subjects/${subjectId}/students`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          });
+          if (studentsRes.ok) {
+            studentsList = await studentsRes.json();
+          }
+        } catch {}
+        setStudents(studentsList);
 
         // Fetch announcements for this subject (student endpoint)
         const annRes = await fetch(`/api/students/subjects/${subjectId}/announcements`, {
@@ -206,6 +219,24 @@ export default function StudentSubjectDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Enrolled Students Card */}
+            <Card className="shadow-card border-primary/30 mb-6">
+              <CardContent className="py-4 px-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-semibold text-lg">Enrolled Students <span className="text-xs text-muted-foreground">({students.length})</span></span>
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+                  {students.map((s: any) => (
+                    <li key={s._id || s.id} className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-foreground">{s.name}</span>
+                      <span className="text-xs text-muted-foreground">({s.rollNo})</span>
+                    </li>
+                  ))}
+                  {students.length === 0 && <li className="text-muted-foreground text-sm">No students enrolled.</li>}
+                </ul>
+              </CardContent>
+            </Card>
 
             {/* Announcements List */}
             <Card>

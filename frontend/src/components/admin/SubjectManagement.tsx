@@ -126,9 +126,11 @@ export default function SubjectManagement() {
       setNewSubject({ name: '', code: '', className: '', teacherName: '' });
       setIsCreateDialogOpen(false);
     } catch (err: any) {
+      let errorMsg = err?.response?.data?.message || "Failed to create subject";
+      if (errorMsg === 'Teacher not found') errorMsg = 'Selected teacher does not exist. Please choose a valid teacher.';
       toast({
         title: "Error",
-        description: err?.response?.data?.message || "Failed to create subject",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -199,9 +201,11 @@ export default function SubjectManagement() {
       setIsEditDialogOpen(false);
       setEditSubject(null);
     } catch (err: any) {
+      let errorMsg = err?.response?.data?.message || "Failed to update subject";
+      if (errorMsg === 'Teacher not found') errorMsg = 'Selected teacher does not exist. Please choose a valid teacher.';
       toast({
         title: "Error",
-        description: err?.response?.data?.message || "Failed to update subject",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -267,12 +271,17 @@ export default function SubjectManagement() {
               </div>
               <div>
                 <Label htmlFor="teacherName">Teacher Name</Label>
-                <Input
+                <select
                   id="teacherName"
-                  placeholder="e.g., John Doe"
                   value={newSubject.teacherName}
                   onChange={e => setNewSubject({ ...newSubject, teacherName: e.target.value })}
-                />
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
+                >
+                  <option value="">-- No Teacher Assigned --</option>
+                  {faculties.map(f => (
+                    <option key={f._id} value={f.name}>{f.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleCreateSubject} className="flex-1">
@@ -429,12 +438,17 @@ export default function SubjectManagement() {
             </div>
             <div>
               <Label htmlFor="editTeacherName">Teacher Name</Label>
-              <Input
+              <select
                 id="editTeacherName"
-                placeholder="e.g., John Doe"
                 value={editSubject?.teacherName || ''}
                 onChange={e => setEditSubject((prev: any) => ({ ...prev, teacherName: e.target.value }))}
-              />
+                className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
+              >
+                <option value="">-- No Teacher Assigned --</option>
+                {faculties.map(f => (
+                  <option key={f._id} value={f.name}>{f.name}</option>
+                ))}
+              </select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>

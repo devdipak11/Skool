@@ -9,13 +9,11 @@ const announcementSchema = new mongoose.Schema({
 const subjectSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     code: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     faculty: {
         type: mongoose.Schema.Types.ObjectId,

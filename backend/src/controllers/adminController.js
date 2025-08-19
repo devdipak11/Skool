@@ -238,6 +238,11 @@ exports.createSubject = async (req, res) => {
             }
             facultyId = faculty._id;
         }
+        // Allow duplicate names but require unique code+className
+        const existing = await Subject.findOne({ code, className });
+        if (existing) {
+            return res.status(409).json({ message: 'A subject with this code and class already exists.' });
+        }
         const newSubject = new Subject({
             name,
             code,

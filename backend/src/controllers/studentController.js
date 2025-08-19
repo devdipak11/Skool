@@ -154,6 +154,24 @@ exports.getEnrolledSubjects = async (req, res) => {
     }
 };
 
+// Get all students enrolled in a subject (for students)
+exports.getEnrolledStudentsForSubject = async (req, res) => {
+    try {
+        const { subjectId } = req.params;
+        const student = await Student.findById(req.user.id);
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+        // Check if the student is enrolled in the subject
+        if (!student.subjects.map(id => String(id)).includes(subjectId)) {
+            return res.status(403).json({ message: 'You are not enrolled in this subject' });
+        }
+        // Get all students enrolled in this subject
+        const students = await Student.find({ subjects: subjectId }).select('name rollNo');
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching enrolled students', error });
+    }
+};
+
 
 
 //announcements

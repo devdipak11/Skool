@@ -33,6 +33,7 @@ export default function SubjectDetail() {
   const [expandedComments, setExpandedComments] = useState<{ [announcementId: string]: boolean }>({});
   const [editCommentId, setEditCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
+  const [students, setStudents] = useState<any[]>([]);
 
   // Fetch subject details and announcements
   useEffect(() => {
@@ -47,7 +48,23 @@ export default function SubjectDetail() {
         if (!subjectRes.ok) throw new Error('Failed to fetch subject details');
         const subjectData = await subjectRes.json();
         setSubject(subjectData.subject || subjectData);
-
+        // Students (enrolled in this subject)
+        if (subjectData.students) {
+          setStudents(subjectData.students);
+        } else if (subjectData.subject && subjectData.subject.students) {
+          setStudents(subjectData.subject.students);
+        } else {
+          // fallback: fetch students for this subject
+          const studentsRes = await fetch(`${BACKEND_URL}/api/faculty/subjects/${subjectId}/students`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          });
+          if (studentsRes.ok) {
+            const studentsData = await studentsRes.json();
+            setStudents(Array.isArray(studentsData) ? studentsData : []);
+          } else {
+            setStudents([]);
+          }
+        }
         // Announcements
         const annRes = await fetch(`${BACKEND_URL}/api/faculty/announcements/${subjectId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -329,7 +346,23 @@ export default function SubjectDetail() {
           </div>
         </div>
       </div>
-
+      {/* Students Card */}
+      <Card className="shadow-card border-primary/30 mb-6">
+        <CardContent className="py-4 px-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold text-lg">Enrolled Students <span className="text-xs text-muted-foreground">({students.length})</span></span>
+          </div>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+            {students.map((s: any) => (
+              <li key={s._id || s.id} className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">{s.name}</span>
+                <span className="text-xs text-muted-foreground">({s.rollNo})</span>
+              </li>
+            ))}
+            {students.length === 0 && <li className="text-muted-foreground text-sm">No students enrolled.</li>}
+          </ul>
+        </CardContent>
+      </Card>
       {/* New Announcement */}
       <div
         className="mb-6 bg-white rounded-xl shadow-lg p-4"

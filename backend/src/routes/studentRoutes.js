@@ -21,6 +21,7 @@ router.post('/enroll', authMiddleware, studentController.enrollInSubject);
 router.post('/unenroll', authMiddleware, studentController.unenrollSubject);
 router.get('/subjects', authMiddleware, studentController.getEnrolledSubjects);
 router.get('/subjects/:subjectId/announcements', authMiddleware, studentController.viewSubjectAnnouncements);
+router.get('/subjects/:subjectId/students', authMiddleware, roleMiddleware('student'), studentController.getEnrolledStudentsForSubject);
 
 // Announcements
 router.get('/announcements/:announcementId', authMiddleware, studentController.viewAnnouncementDetails);
