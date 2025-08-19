@@ -413,8 +413,14 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl mb-4 shadow-card">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Tagore Public School</h1>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight" style={{ fontWeight: 900 }}>
+            Tagore Public School
+          </h1>
           <p className="text-muted-foreground mt-2">School Management System</p>
+        </div>
+        {/* Divider above banner carousel */}
+        <div className="w-full flex justify-center mb-8">
+          <div className="h-[2px] w-2/3 bg-gray-200 rounded-full" />
         </div>
         {/* Banner Carousel just below heading */}
         {banners.length > 0 && (
@@ -454,37 +460,63 @@ export default function LoginPage() {
             </Carousel>
           </div>
         )}
+        {/* Divider below banner carousel */}
+        <div className="w-full flex justify-center mb-8">
+          <div className="h-[2px] w-2/3 bg-gray-200 rounded-full" />
+        </div>
         {/* Login/Register Form Card */}
         <Card className={`
           shadow-card border-0 bg-card/80 backdrop-blur-sm w-full
           ${typeof window !== "undefined" && window.innerWidth < 640 ? 'rounded-none shadow-none border-none' : ''}
         `}>
           <CardHeader className="space-y-1">
-            <div className="flex justify-center gap-2 mb-4">
-              <Button
-                type="button"
-                variant={role === 'student' ? 'default' : 'outline'}
-                onClick={() => handleRoleButton('student')}
-                className="flex items-center gap-2"
-              >
-                <GraduationCap className="w-5 h-5" /> Student
-              </Button>
-              <Button
-                type="button"
-                variant={role === 'faculty' ? 'default' : 'outline'}
-                onClick={() => handleRoleButton('faculty')}
-                className="flex items-center gap-2"
-              >
-                <Users className="w-5 h-5" /> Faculty
-              </Button>
-              <Button
-                type="button"
-                variant={role === 'admin' ? 'default' : 'outline'}
-                onClick={() => handleRoleButton('admin')}
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-5 h-5" /> Admin
-              </Button>
+            {/* Add label above role buttons */}
+            <div className="flex flex-col items-center gap-2 mb-4">
+              <span className="text-base font-medium text-muted-foreground mb-1">I am a:</span>
+              <div className="flex flex-row gap-3 w-full justify-center">
+                <Button
+                  type="button"
+                  variant={role === 'student' ? 'default' : 'outline'}
+                  onClick={() => handleRoleButton('student')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    ${role === 'student' ? 'bg-[#3366e7] text-white shadow-md' : 'bg-white text-[#222] border border-gray-200'}
+                  `}
+                  style={{
+                    minWidth: 120,
+                    minHeight: 48,
+                  }}
+                >
+                  <GraduationCap className="w-5 h-5" /> Student
+                </Button>
+                <Button
+                  type="button"
+                  variant={role === 'faculty' ? 'default' : 'outline'}
+                  onClick={() => handleRoleButton('faculty')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    ${role === 'faculty' ? 'bg-[#f5f6fa] border border-[#3366e7] text-[#222]' : 'bg-white text-[#222] border border-gray-200'}
+                  `}
+                  style={{
+                    minWidth: 120,
+                    minHeight: 48,
+                  }}
+                >
+                  <Users className="w-5 h-5" /> Faculty
+                </Button>
+                <Button
+                  type="button"
+                  variant={role === 'admin' ? 'default' : 'outline'}
+                  onClick={() => handleRoleButton('admin')}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    ${role === 'admin' ? 'bg-[#f5f6fa] border border-[#3366e7] text-[#222]' : 'bg-white text-[#222] border border-gray-200'}
+                  `}
+                  style={{
+                    minWidth: 120,
+                    minHeight: 48,
+                  }}
+                >
+                  <Settings className="w-5 h-5" /> Admin
+                </Button>
+              </div>
             </div>
             <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
               <TabsList className="grid w-full grid-cols-2">
@@ -493,8 +525,6 @@ export default function LoginPage() {
               </TabsList>
               
               <TabsContent value="login" className="space-y-4 mt-4">
-                <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>Sign in to your account to continue</CardDescription>
               </TabsContent>
               
               <TabsContent value="register" className="space-y-4 mt-4">
@@ -778,7 +808,7 @@ export default function LoginPage() {
                     </>
                   )}
                   <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    Admin and Faculty can log in directly. Only new students have to register. contact us:-9204520826
+                    Note:- Admin and Faculty can log in directly. Only new students have to register! | Facing Problem? Contact us:- 9204520826 for help!
                   </div>
                   {(role === 'faculty' || role === 'admin') && (
                     <Button
