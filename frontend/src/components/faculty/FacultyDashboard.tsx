@@ -15,7 +15,7 @@ export default function FacultyDashboard() {
   const { token } = useAuth();
 
   // Banner carousel state and autoplay refs (mirrors StudentHome behavior)
-  const [banners, setBanners] = useState<BannerItem[]>(mockBanners);
+  const [banners, setBanners] = useState<BannerItem[]>([]);
   const [carouselApi, setCarouselApi] = useState<any | null>(null);
   const autoplayRef = useRef<number | null>(null);
   const isPausedRef = useRef<boolean>(false);
@@ -38,20 +38,23 @@ export default function FacultyDashboard() {
     const fetchBanners = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/banners`);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error();
         const data = await res.json();
-        if (!Array.isArray(data)) return;
-        const mapped = data.map((b: any) => ({
-          id: b._id || b.id,
-          title: b.title || 'Banner',
-          description: b.description || '',
-          image: b.image || b.imageUrl || '',
-          imageUrl: b.imageUrl || b.image || '',
-          link: b.link || undefined
-        }));
-        if (mounted && mapped.length > 0) setBanners(mapped);
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((b: any) => ({
+            id: b._id || b.id,
+            title: b.title || 'Banner',
+            description: b.description || '',
+            image: b.image || b.imageUrl || '',
+            imageUrl: b.imageUrl || b.image || '',
+            link: b.link || undefined
+          }));
+          setBanners(mapped);
+        } else if (mounted) {
+          setBanners(mockBanners);
+        }
       } catch (e) {
-        // ignore, fallback to mockBanners
+        if (mounted) setBanners(mockBanners);
       }
     };
     fetchBanners();
@@ -112,46 +115,48 @@ export default function FacultyDashboard() {
       <AppHeader title="Tagore Public School" />
       
       {/* Banner Carousel (same as Student view) */}
-      <div
-        className="p-4"
-        onMouseEnter={() => { isPausedRef.current = true; stopAutoplay(); }}
-        onMouseLeave={() => { isPausedRef.current = false; startAutoplay(); }}
-      >
-        <Carousel className="w-full" opts={{ loop: true }} setApi={setCarouselApi}>
-          <CarouselContent>
-            {banners.map((banner) => {
-              const raw = banner.imageUrl || banner.image || '';
-              const imgSrc = resolveImageUrl(raw);
-              return (
-                <CarouselItem key={banner.id}>
-                  <Card className="border-0 shadow-card overflow-hidden">
-                    <div className="relative h-40 md:h-48 bg-gray-100 overflow-hidden rounded-lg">
-                      <div
-                        className="absolute inset-0 bg-center bg-cover"
-                        style={{
-                          backgroundImage: imgSrc ? `url(${imgSrc})` : undefined,
-                          backgroundColor: '#fff',
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-4 left-6 right-6 z-10 text-white">
-                        <h3 className="text-lg md:text-xl font-semibold leading-tight drop-shadow-md">
-                          {banner.title}
-                        </h3>
-                        <p className="text-sm md:text-base opacity-90 mt-1 drop-shadow-md">
-                          {banner.description}
-                        </p>
+      {banners.length > 0 && (
+        <div
+          className="p-4"
+          onMouseEnter={() => { isPausedRef.current = true; stopAutoplay(); }}
+          onMouseLeave={() => { isPausedRef.current = false; startAutoplay(); }}
+        >
+          <Carousel className="w-full" opts={{ loop: true }} setApi={setCarouselApi}>
+            <CarouselContent>
+              {banners.map((banner) => {
+                const raw = banner.imageUrl || banner.image || '';
+                const imgSrc = resolveImageUrl(raw);
+                return (
+                  <CarouselItem key={banner.id}>
+                    <Card className="border-0 shadow-card overflow-hidden">
+                      <div className="relative h-40 md:h-48 bg-gray-100 overflow-hidden rounded-lg">
+                        <div
+                          className="absolute inset-0 bg-center bg-cover"
+                          style={{
+                            backgroundImage: imgSrc ? `url(${imgSrc})` : undefined,
+                            backgroundColor: '#fff',
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-4 left-6 right-6 z-10 text-white">
+                          <h3 className="text-lg md:text-xl font-semibold leading-tight drop-shadow-md">
+                            {banner.title}
+                          </h3>
+                          <p className="text-sm md:text-base opacity-90 mt-1 drop-shadow-md">
+                            {banner.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                </CarouselItem>
-              );
-            })}
-          </CarouselContent>
-          <CarouselPrevious className="left-2" />
-          <CarouselNext className="right-2" />
-        </Carousel>
-      </div>
+                    </Card>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
+        </div>
+      )}
       
       <div className="p-4 pb-20 space-y-6">
         {/* Quick Stats */}

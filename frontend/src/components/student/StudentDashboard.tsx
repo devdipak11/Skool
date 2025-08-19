@@ -28,7 +28,7 @@ interface Subject {
 }
 
 export default function StudentHome() {
-  const [banners, setBanners] = useState<BannerItem[]>(mockBanners);
+  const [banners, setBanners] = useState<BannerItem[]>([]);
   const [subjectCode, setSubjectCode] = useState('');
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true); // Start with loading true
@@ -114,26 +114,24 @@ export default function StudentHome() {
     let mounted = true;
     const fetchBanners = async () => {
       try {
-        // call backend directly so we get real banner objects and images served under backend /uploads
         const res = await fetch(`${API_BASE}/api/banners`);
-        if (!res.ok) {
-          console.warn('Banners fetch failed, using mock banners', res.status);
-          return;
-        }
+        if (!res.ok) throw new Error();
         const data = await res.json();
-        if (!Array.isArray(data)) return;
-        const mapped = data.map((b: any) => ({
-          id: b._id || b.id,
-          title: b.title || 'Banner',
-          description: b.description || '',
-          // keep both properties; we'll resolve to absolute URL when rendering
-          image: b.image || b.imageUrl || '',
-          imageUrl: b.imageUrl || b.image || '',
-          link: b.link || undefined
-        }));
-        if (mounted && mapped.length > 0) setBanners(mapped);
+        if (mounted && Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((b: any) => ({
+            id: b._id || b.id,
+            title: b.title || 'Banner',
+            description: b.description || '',
+            image: b.image || b.imageUrl || '',
+            imageUrl: b.imageUrl || b.image || '',
+            link: b.link || undefined
+          }));
+          setBanners(mapped);
+        } else if (mounted) {
+          setBanners(mockBanners);
+        }
       } catch (e) {
-        console.warn('Error fetching banners, using mock data', e);
+        if (mounted) setBanners(mockBanners);
       }
     };
     fetchBanners();
@@ -371,52 +369,54 @@ export default function StudentHome() {
       
       <div className="p-4 pb-20 space-y-6">
         {/* Banner Carousel */}
-        <div
-          className="relative"
-          onMouseEnter={() => { isPausedRef.current = true; stopAutoplay(); }}
-          onMouseLeave={() => { isPausedRef.current = false; startAutoplay(); }}
-        >
-          <Carousel className="w-full" opts={{ loop: true }} setApi={setCarouselApi}>
-            <CarouselContent>
-              {banners.map((banner) => {
-                // resolve final src (prefer imageUrl then image)
-                const raw = banner.imageUrl || banner.image || '';
-                const imgSrc = resolveImageUrl(raw);
+        {banners.length > 0 && (
+          <div
+            className="relative"
+            onMouseEnter={() => { isPausedRef.current = true; stopAutoplay(); }}
+            onMouseLeave={() => { isPausedRef.current = false; startAutoplay(); }}
+          >
+            <Carousel className="w-full" opts={{ loop: true }} setApi={setCarouselApi}>
+              <CarouselContent>
+                {banners.map((banner) => {
+                  // resolve final src (prefer imageUrl then image)
+                  const raw = banner.imageUrl || banner.image || '';
+                  const imgSrc = resolveImageUrl(raw);
 
-                return (
-                  <CarouselItem key={banner.id}>
-                    <Card className="border-0 shadow-card overflow-hidden">
-                      {/* smaller banner area; image used as background to cover whole area */}
-                      <div className="relative h-40 md:h-48 bg-gray-100 overflow-hidden rounded-lg">
-                        {/* background layer */}
-                        <div
-                          className="absolute inset-0 bg-center bg-cover"
-                          style={{
-                            backgroundImage: imgSrc ? `url(${imgSrc})` : undefined,
-                            backgroundColor: '#fff',
-                          }}
-                        />
-                        {/* stronger gradient at bottom for text contrast */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        {/* title + description directly on image */}
-                        <div className="absolute bottom-4 left-6 right-6 z-10 text-white">
-                          <h3 className="text-lg md:text-xl font-semibold leading-tight drop-shadow-md">
-                            {banner.title}
-                          </h3>
-                          <p className="text-sm md:text-base opacity-90 mt-1 drop-shadow-md">
-                            {banner.description}
-                          </p>
+                  return (
+                    <CarouselItem key={banner.id}>
+                      <Card className="border-0 shadow-card overflow-hidden">
+                        {/* smaller banner area; image used as background to cover whole area */}
+                        <div className="relative h-40 md:h-48 bg-gray-100 overflow-hidden rounded-lg">
+                          {/* background layer */}
+                          <div
+                            className="absolute inset-0 bg-center bg-cover"
+                            style={{
+                              backgroundImage: imgSrc ? `url(${imgSrc})` : undefined,
+                              backgroundColor: '#fff',
+                            }}
+                          />
+                          {/* stronger gradient at bottom for text contrast */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          {/* title + description directly on image */}
+                          <div className="absolute bottom-4 left-6 right-6 z-10 text-white">
+                            <h3 className="text-lg md:text-xl font-semibold leading-tight drop-shadow-md">
+                              {banner.title}
+                            </h3>
+                            <p className="text-sm md:text-base opacity-90 mt-1 drop-shadow-md">
+                              {banner.description}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  </CarouselItem>
-                );
-              })}
-            </CarouselContent>
-            <CarouselPrevious className="left-2" />
-            <CarouselNext className="right-2" />
-          </Carousel>
-        </div>
+                      </Card>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+            </Carousel>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-4">
