@@ -127,7 +127,7 @@ export default function LoginPage() {
     ) {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/send-otp`, {
+        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobileNo }),
@@ -164,7 +164,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/send-otp`, {
+      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNo }),
@@ -195,7 +195,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const payload = { role: getBackendRole('student'), mobileNo, otp: studentOtp };
-      const res = await fetch(`${API_BASE}/login`, {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -286,7 +286,7 @@ export default function LoginPage() {
       if (role === 'student') payload.mobileNo = mobileNo;
       if (role === 'faculty') payload.facultyId = facultyId;
       if (role === 'admin') payload.adminId = adminId;
-      const res = await fetch(`${API_BASE}/login`, {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -334,7 +334,7 @@ export default function LoginPage() {
     if (role === 'faculty') payload.facultyId = forgotFacultyId;
     if (role === 'admin') payload.adminId = forgotAdminId;
     try {
-      const res = await fetch(`${API_BASE}/change-password`, {
+      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
