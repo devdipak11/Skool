@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BACKEND_URL } from '@/utils/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { mockBanners } from '@/data/mockData';
+import type { BannerItem } from '@/data/mockData';
 
 export type UserRole = 'student' | 'faculty' | 'admin';
 
@@ -29,13 +33,26 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotMobile, setForgotMobile] = useState('');
+  const [forgotFacultyId, setForgotFacultyId] = useState('');
+  const [forgotAdminId, setForgotAdminId] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [studentOtpSent, setStudentOtpSent] = useState(false);
+  const [studentOtp, setStudentOtp] = useState('');
+  const [studentOtpVerified, setStudentOtpVerified] = useState(false);
+  const [banners, setBanners] = useState<BannerItem[]>(mockBanners);
+  const [carouselApi, setCarouselApi] = useState<any | null>(null);
+  const autoplayRef = useRef<number | null>(null);
+  const isPausedRef = useRef<boolean>(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login: loginContext } = useAuth();
 
   // API base url
-  const API_BASE = `${BACKEND_URL}/api/auth`;
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || BACKEND_URL;
 
   // Helper: map frontend role to backend role
   const getBackendRole = (role: UserRole) => {
@@ -44,6 +61,63 @@ export default function LoginPage() {
     if (role === 'admin') return 'Admin';
     return '';
   };
+
+  const resolveImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (!url.startsWith('/')) {
+      return `${API_BASE}/${url.replace(/^\/+/,'')}`;
+    }
+    return `${API_BASE}${url}`;
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchBanners = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/banners`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data)) return;
+        const mapped = data.map((b: any) => ({
+          id: b._id || b.id,
+          title: b.title || 'Banner',
+          description: b.description || '',
+          image: b.image || b.imageUrl || '',
+          imageUrl: b.imageUrl || b.image || '',
+          link: b.link || undefined
+        }));
+        if (mounted && mapped.length > 0) setBanners(mapped);
+      } catch (e) {
+        // ignore, fallback to mockBanners
+      }
+    };
+    fetchBanners();
+    return () => { mounted = false; };
+  }, [API_BASE]);
+
+  const startAutoplay = () => {
+    if (autoplayRef.current) {
+      window.clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+    if (!carouselApi) return;
+    autoplayRef.current = window.setInterval(() => {
+      if (isPausedRef.current) return;
+      try { carouselApi?.scrollNext(); } catch { /* ignore */ }
+    }, 5000);
+  };
+  const stopAutoplay = () => {
+    if (autoplayRef.current) {
+      window.clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+  };
+  useEffect(() => {
+    if (!carouselApi) return;
+    startAutoplay();
+    return () => stopAutoplay();
+  }, [carouselApi]);
 
   // Send OTP API
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -60,7 +134,6 @@ export default function LoginPage() {
         });
         const data = await res.json();
         if (res.ok) {
-          // If backend returns OTP (dev mode), store and show it in UI; otherwise just indicate sent
           setOtpSent(true);
           setOtp(data?.otp || '');
           setOtpVerified(false);
@@ -82,7 +155,82 @@ export default function LoginPage() {
     }
   };
 
-  // OTP verification is handled on backend during register
+  // Student Login: Send OTP
+  const handleStudentSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!mobileNo || mobileNo.length !== 10) {
+      toast({ title: "Invalid Mobile Number", description: "Please enter a valid 10-digit mobile number.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobileNo }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStudentOtpSent(true);
+        setStudentOtp(data?.otp || '');
+        setStudentOtpVerified(false);
+        toast({ title: "OTP Sent", description: `A 6-digit OTP has been sent to ${mobileNo}.` });
+      } else {
+        toast({ title: "OTP Error", description: data.message || "Failed to send OTP", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Network Error", description: "Could not send OTP", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Student Login: Verify OTP and Login
+  const handleStudentLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileNo || !studentOtp || studentOtp.length !== 6) {
+      toast({ title: "Invalid OTP", description: "Please enter the 6-digit OTP.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = { role: getBackendRole('student'), mobileNo, otp: studentOtp };
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back! Logged in as student.`,
+        });
+        loginContext({
+          ...data.user,
+          fatherName: data.user?.fatherName,
+          address: data.user?.address,
+          className: data.user?.class,
+          rollNo: data.user?.rollNo,
+          mobileNo: data.user?.mobileNo
+        }, data.token);
+        navigate('/student');
+      } else {
+        toast({
+          title: "Login Failed",
+          description: data.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Network Error",
+        description: "Could not login.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Register API
   const handleRegister = async (e: React.FormEvent) => {
@@ -137,7 +285,7 @@ export default function LoginPage() {
       let payload: Record<string, string> = { role: getBackendRole(role), password };
       if (role === 'student') payload.mobileNo = mobileNo;
       if (role === 'faculty') payload.facultyId = facultyId;
-      if (role === 'admin') payload.adminId = adminId; // <-- FIXED: use adminId, not mobileNo
+      if (role === 'admin') payload.adminId = adminId;
       const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,19 +297,17 @@ export default function LoginPage() {
           title: "Login Successful",
           description: `Welcome back! Logged in as ${role}.`,
         });
-        // Save user and token in AuthContext & include extra fields if present
         loginContext({
           ...data.user,
           fatherName: data.user?.fatherName,
-            address: data.user?.address,
-            className: data.user?.class, // map backend 'class' to frontend 'className'
-            rollNo: data.user?.rollNo,
-            mobileNo: data.user?.mobileNo
+          address: data.user?.address,
+          className: data.user?.class,
+          rollNo: data.user?.rollNo,
+          mobileNo: data.user?.mobileNo
         }, data.token);
         if (role === 'student') {
           navigate('/student');
         }
-        // You can add similar redirects for faculty/admin if needed
       } else {
         toast({
           title: "Login Failed",
@@ -176,6 +322,35 @@ export default function LoginPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Forgot password handler
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    let payload: any = { role: getBackendRole(role), newPassword: forgotNewPassword };
+    if (role === 'student') payload.mobileNo = forgotMobile;
+    if (role === 'faculty') payload.facultyId = forgotFacultyId;
+    if (role === 'admin') payload.adminId = forgotAdminId;
+    try {
+      const res = await fetch(`${API_BASE}/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Password Changed', description: 'You can now login with your new password.' });
+        setShowForgot(false);
+        setForgotMobile(''); setForgotFacultyId(''); setForgotAdminId(''); setForgotNewPassword('');
+      } else {
+        toast({ title: 'Error', description: data.message || 'Failed to change password.', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Network Error', description: 'Could not change password.', variant: 'destructive' });
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -206,8 +381,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col items-center justify-center p-4">
+      {/* Login/Register Card with heading at top, then banner carousel, then form */}
+      <div className="w-full max-w-xl animate-fade-in bg-white/90 rounded-3xl shadow-xl px-6 py-12 flex flex-col items-center">
+        {/* School heading and icon at the top */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl mb-4 shadow-card">
             <BookOpen className="w-8 h-8 text-white" />
@@ -215,10 +392,45 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-foreground">Tagore Public School</h1>
           <p className="text-muted-foreground mt-2">School Management System</p>
         </div>
-
-        <Card className="shadow-card border-0 bg-card/80 backdrop-blur-sm">
+        {/* Banner Carousel just below heading */}
+        <div
+          className="w-full mb-8"
+          onMouseEnter={() => { isPausedRef.current = true; stopAutoplay(); }}
+          onMouseLeave={() => { isPausedRef.current = false; startAutoplay(); }}
+        >
+          <Carousel className="w-full" opts={{ loop: true }} setApi={setCarouselApi}>
+            <CarouselContent>
+              {banners.map((banner) => {
+                const raw = banner.imageUrl || banner.image || '';
+                const imgSrc = resolveImageUrl(raw);
+                return (
+                  <CarouselItem key={banner.id}>
+                    <div className="border-0 shadow-card overflow-hidden rounded-lg relative h-40 md:h-48 bg-gray-100">
+                      <div
+                        className="absolute inset-0 bg-center bg-cover"
+                        style={{ backgroundImage: imgSrc ? `url(${imgSrc})` : undefined, backgroundColor: '#fff' }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-4 left-6 right-6 z-10 text-white">
+                        <h3 className="text-lg md:text-xl font-semibold leading-tight drop-shadow-md">
+                          {banner.title}
+                        </h3>
+                        <p className="text-sm md:text-base opacity-90 mt-1 drop-shadow-md">
+                          {banner.description}
+                        </p>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
+        </div>
+        {/* Login/Register Form Card */}
+        <Card className="shadow-card border-0 bg-card/80 backdrop-blur-sm w-full">
           <CardHeader className="space-y-1">
-            {/* Role selection buttons */}
             <div className="flex justify-center gap-2 mb-4">
               <Button
                 type="button"
@@ -264,8 +476,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Registration fields for student only */}
+            <form onSubmit={role === 'student' && isLogin ? handleStudentLogin : handleSubmit} className="space-y-4">
               {!isLogin && role === 'student' && (
                 <>
                   {registerSuccess ? (
@@ -341,7 +552,6 @@ export default function LoginPage() {
                           maxLength={10}
                           pattern="[0-9]{10}"
                           onChange={(e) => {
-                            // Only allow digits and max 10 characters
                             const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                             setMobileNo(val);
                           }}
@@ -359,7 +569,6 @@ export default function LoginPage() {
                           required
                         />
                       </div>
-                      {/* OTP Flow */}
                       {!otpSent && (
                         <Button
                           type="button"
@@ -379,15 +588,12 @@ export default function LoginPage() {
                             placeholder="Enter 6-digit OTP"
                             value={otp}
                             maxLength={6}
-                            // Make input readOnly if otp is present (dev mode), so user can't edit
                             readOnly={!!otp}
-                            // Remove onChange if readOnly, else allow manual entry
                             onChange={e => {
                               if (!otp) setOtp(e.target.value.replace(/\D/,''));
                             }}
                             required
                           />
-                          {/* Development: show OTP on page if backend provided it */}
                           {otp && (
                             <div className="text-sm text-muted-foreground flex items-center justify-between">
                               <span>Development OTP: <strong className="ml-1">{otp}</strong></span>
@@ -398,7 +604,6 @@ export default function LoginPage() {
                             className="w-full bg-gradient-primary hover:shadow-hover transition-all duration-200"
                             onClick={async (e) => {
                               e.preventDefault();
-                              // OTP is verified on register, so just mark as verified if 6 digits
                               if (otp.length === 6) setOtpVerified(true);
                               else toast({ title: "Invalid OTP", description: "Please enter a valid 6-digit OTP.", variant: "destructive" });
                             }}
@@ -423,26 +628,75 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* Login fields based on role */}
               {isLogin && (
                 <>
                   {role === 'student' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="mobile">Mobile Number</Label>
-                      <Input
-                        id="mobile"
-                        type="tel"
-                        placeholder="Enter your mobile number"
-                        value={mobileNo}
-                        maxLength={10}
-                        pattern="[0-9]{10}"
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setMobileNo(val);
-                        }}
-                        required
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="mobile">Mobile Number</Label>
+                        <Input
+                          id="mobile"
+                          type="tel"
+                          placeholder="Enter your mobile number"
+                          value={mobileNo}
+                          maxLength={10}
+                          pattern="[0-9]{10}"
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setMobileNo(val);
+                          }}
+                          required
+                          disabled={studentOtpSent}
+                        />
+                      </div>
+                      {!studentOtpSent && (
+                        <Button
+                          type="button"
+                          className="w-full bg-gradient-primary hover:shadow-hover transition-all duration-200"
+                          onClick={handleStudentSendOtp}
+                          disabled={loading || !mobileNo || mobileNo.length !== 10}
+                        >
+                          {loading ? 'Please wait...' : 'Send OTP'}
+                        </Button>
+                      )}
+                      {studentOtpSent && (
+                        <div className="space-y-2">
+                          <Label htmlFor="student-otp">Enter OTP</Label>
+                          <Input
+                            id="student-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={studentOtp}
+                            maxLength={6}
+                            onChange={e => setStudentOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            required
+                          />
+                          {studentOtp && studentOtp.length === 6 && (
+                            <div className="text-sm text-muted-foreground flex items-center justify-between">
+                              <span>Development OTP: <strong className="ml-1">{studentOtp}</strong></span>
+                            </div>
+                          )}
+                          <Button
+                            type="submit"
+                            className="w-full bg-gradient-primary hover:shadow-hover transition-all duration-200"
+                            disabled={loading || studentOtp.length !== 6}
+                          >
+                            {loading ? 'Please wait...' : 'Verify OTP & Sign In'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full mt-2"
+                            onClick={() => {
+                              setStudentOtpSent(false);
+                              setStudentOtp('');
+                            }}
+                          >
+                            Change Mobile Number
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                   {role === 'faculty' && (
                     <div className="space-y-2">
@@ -470,34 +724,105 @@ export default function LoginPage() {
                       />
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
+                  {(role === 'faculty' || role === 'admin') && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="flex justify-end mb-2">
+                        <button
+                          type="button"
+                          className="text-sm text-primary underline hover:text-primary/80 focus:outline-none"
+                          onClick={() => setShowForgot(true)}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
                     Admin and Faculty can log in directly. Only new students have to register. contact us:-9204520826
                   </div>
-                  {/* Add the login button here */}
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-primary hover:shadow-hover transition-all duration-200"
-                    disabled={loading}
-                  >
-                    {loading ? 'Please wait...' : 'Sign In'}
-                  </Button>
+                  {(role === 'faculty' || role === 'admin') && (
+                    <Button
+                      type="submit"
+                      className="w-full bg-gradient-primary hover:shadow-hover transition-all duration-200"
+                      disabled={loading}
+                    >
+                      {loading ? 'Please wait...' : 'Sign In'}
+                    </Button>
+                  )}
                 </>
               )}
             </form>
           </CardContent>
         </Card>
       </div>
+      {(role === 'faculty' || role === 'admin') && (
+        <Dialog open={showForgot} onOpenChange={setShowForgot}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+              <DialogDescription>
+                {role === 'student' && 'Enter your registered mobile number and new password.'}
+                {role === 'faculty' && 'Enter your Faculty ID and new password.'}
+                {role === 'admin' && 'Enter your Admin ID and new password.'}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              {role === 'student' && (
+                <Input
+                  type="tel"
+                  placeholder="Registered Mobile Number"
+                  value={forgotMobile}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  onChange={e => setForgotMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  required
+                />
+              )}
+              {role === 'faculty' && (
+                <Input
+                  type="text"
+                  placeholder="Faculty ID"
+                  value={forgotFacultyId}
+                  onChange={e => setForgotFacultyId(e.target.value)}
+                  required
+                />
+              )}
+              {role === 'admin' && (
+                <Input
+                  type="text"
+                  placeholder="Admin ID"
+                  value={forgotAdminId}
+                  onChange={e => setForgotAdminId(e.target.value)}
+                  required
+                />
+              )}
+              <Input
+                type="password"
+                placeholder="New Password"
+                value={forgotNewPassword}
+                onChange={e => setForgotNewPassword(e.target.value)}
+                required
+              />
+              <DialogFooter>
+                <Button type="submit" className="w-full" disabled={forgotLoading}>
+                  {forgotLoading ? 'Please wait...' : 'Change Password'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

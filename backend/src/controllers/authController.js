@@ -68,7 +68,7 @@ exports.registerStudent = async (req, res) => {
 
 // Login a user (admin/faculty/student logic)
 exports.login = async (req, res) => {
-    const { adminId, mobileNo, facultyId, password, role } = req.body;
+    const { adminId, mobileNo, facultyId, password, role, otp } = req.body;
 
     // Admin login (hardcoded)
     if (role === 'Admin') {
@@ -99,19 +99,32 @@ exports.login = async (req, res) => {
         }
     }
 
-    // Student login (by mobileNo)
+    // Student login (by mobileNo and OTP)
     if (role === 'Student') {
         try {
+            // OTP verification logic for login
+            if (!mobileNo) {
+                return res.status(400).json({ message: 'Mobile number is required' });
+            }
+            if (!otp || otpStore[mobileNo] !== otp) {
+                console.error('OTP mismatch:', { mobileNo, otp, expected: otpStore[mobileNo] });
+                return res.status(400).json({ message: 'Invalid or missing OTP' });
+            }
+            // Remove OTP after verification
+            delete otpStore[mobileNo];
+
             const student = await Student.findOne({ mobileNo });
             if (!student) {
-                return res.status(401).json({ message: 'Invalid credentials' });
-            }
-            const isMatch = await bcrypt.compare(password, student.password);
-            if (!isMatch) {
+                console.error('Student not found:', mobileNo);
                 return res.status(401).json({ message: 'Invalid credentials' });
             }
             if (!student.approved) {
+                console.error('Student not approved:', mobileNo);
                 return res.status(403).json({ message: 'Account not approved by admin' });
+            }
+            if (!process.env.JWT_SECRET) {
+                console.error('JWT_SECRET is not set in environment variables');
+                return res.status(500).json({ message: 'Server misconfiguration: JWT_SECRET missing' });
             }
             const token = jwt.sign({ id: student._id, role: 'Student' }, process.env.JWT_SECRET, { expiresIn: '24h' });
             return res.status(200).json({ 
@@ -128,9 +141,46 @@ exports.login = async (req, res) => {
                 } 
             });
         } catch (error) {
-            return res.status(500).json({ message: 'Error logging in', error });
+            console.error('Error in student login:', error);
+            return res.status(500).json({ message: 'Error logging in', error: error.message });
         }
     }
 
     return res.status(400).json({ message: 'Invalid role' });
+};
+
+// Change password for student, faculty, admin
+exports.changePassword = async (req, res) => {
+    const { role, mobileNo, facultyId, adminId, newPassword } = req.body;
+    if (!role || !newPassword) {
+        return res.status(400).json({ message: 'Role and new password are required.' });
+    }
+    try {
+        if (role === 'Student') {
+            if (!mobileNo) return res.status(400).json({ message: 'Mobile number is required.' });
+            const student = await Student.findOne({ mobileNo });
+            if (!student) return res.status(404).json({ message: 'Student not found.' });
+            student.password = await bcrypt.hash(newPassword, 10);
+            await student.save();
+            return res.status(200).json({ message: 'Password changed successfully.' });
+        } else if (role === 'Faculty') {
+            if (!facultyId) return res.status(400).json({ message: 'Faculty ID is required.' });
+            const faculty = await Faculty.findOne({ facultyId });
+            if (!faculty) return res.status(404).json({ message: 'Faculty not found.' });
+            faculty.password = await bcrypt.hash(newPassword, 10);
+            await faculty.save();
+            return res.status(200).json({ message: 'Password changed successfully.' });
+        } else if (role === 'Admin') {
+            if (!adminId) return res.status(400).json({ message: 'Admin ID is required.' });
+            // For demo: only allow if adminId is 'ADMIN'
+            if (adminId !== 'ADMIN') return res.status(404).json({ message: 'Admin not found.' });
+            // In real app, admin would be in DB. Here, just check env var
+            process.env.ADMIN_PASSWORD = newPassword;
+            return res.status(200).json({ message: 'Admin password changed successfully (dev mode).' });
+        } else {
+            return res.status(400).json({ message: 'Invalid role.' });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: 'Error changing password', error });
+    }
 };

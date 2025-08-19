@@ -11,8 +11,11 @@ router.post('/send-otp', authController.sendOtp);
 // Resend OTP route
 router.post('/resend-otp', authController.resendOtp);
 
-// Login route
+// Login route (students: mobileNo + otp, faculty/admin: id + password)
 router.post('/login', authController.login);
+
+// Change password route
+router.post('/change-password', authController.changePassword);
 
 // Export the router
 module.exports = router;
