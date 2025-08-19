@@ -406,13 +406,16 @@ export default function LoginPage() {
           min-h-screen
           flex flex-col items-center
           ${typeof window !== "undefined" && window.innerWidth < 640
-            ? 'rounded-none shadow-none px-0 py-0'
+            ? 'max-w-[380px] mx-auto rounded-none shadow-none px-0 py-0'
             : 'sm:max-w-xl sm:animate-fade-in rounded-3xl shadow-xl px-0 py-0'
           }
           bg-[#e3f0fc]
         `}
         style={{
           minHeight: '100vh',
+          maxWidth: typeof window !== "undefined" && window.innerWidth < 640 ? 380 : undefined,
+          marginLeft: typeof window !== "undefined" && window.innerWidth < 640 ? 'auto' : undefined,
+          marginRight: typeof window !== "undefined" && window.innerWidth < 640 ? 'auto' : undefined,
           borderRadius: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : undefined,
           boxShadow: typeof window !== "undefined" && window.innerWidth < 640 ? 'none' : undefined,
         }}
