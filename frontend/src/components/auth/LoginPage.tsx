@@ -338,7 +338,13 @@ export default function LoginPage() {
                           type="tel"
                           placeholder="+1234567890"
                           value={mobileNo}
-                          onChange={(e) => setMobileNo(e.target.value)}
+                          maxLength={10}
+                          pattern="[0-9]{10}"
+                          onChange={(e) => {
+                            // Only allow digits and max 10 characters
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setMobileNo(val);
+                          }}
                           required
                         />
                       </div>
@@ -373,23 +379,18 @@ export default function LoginPage() {
                             placeholder="Enter 6-digit OTP"
                             value={otp}
                             maxLength={6}
-                            onChange={(e) => setOtp(e.target.value.replace(/\D/,''))}
+                            // Make input readOnly if otp is present (dev mode), so user can't edit
+                            readOnly={!!otp}
+                            // Remove onChange if readOnly, else allow manual entry
+                            onChange={e => {
+                              if (!otp) setOtp(e.target.value.replace(/\D/,''));
+                            }}
                             required
                           />
                           {/* Development: show OTP on page if backend provided it */}
                           {otp && (
                             <div className="text-sm text-muted-foreground flex items-center justify-between">
                               <span>Development OTP: <strong className="ml-1">{otp}</strong></span>
-                              <button
-                                type="button"
-                                className="text-sm text-primary underline ml-4"
-                                onClick={() => {
-                                  // already autofilled, but keep for explicit action
-                                  setOtp(otp);
-                                }}
-                              >
-                                Autofill
-                              </button>
                             </div>
                           )}
                           <Button
@@ -433,7 +434,12 @@ export default function LoginPage() {
                         type="tel"
                         placeholder="Enter your mobile number"
                         value={mobileNo}
-                        onChange={(e) => setMobileNo(e.target.value)}
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setMobileNo(val);
+                        }}
                         required
                       />
                     </div>
