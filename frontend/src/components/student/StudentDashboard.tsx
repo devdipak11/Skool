@@ -367,7 +367,7 @@ export default function StudentHome() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Home" />
+      <AppHeader title="Tagore Public School" />
       
       <div className="p-4 pb-20 space-y-6">
         {/* Banner Carousel */}

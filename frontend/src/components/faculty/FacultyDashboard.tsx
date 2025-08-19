@@ -109,7 +109,7 @@ export default function FacultyDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Faculty Dashboard" />
+      <AppHeader title="Tagore Public School" />
       
       {/* Banner Carousel (same as Student view) */}
       <div
@@ -169,7 +169,7 @@ export default function FacultyDashboard() {
         {/* Assigned Subjects */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-foreground">My Subjects</h2>
+            <h2 className="text-xl font-semibold text-foreground">Assigned Subjects</h2>
             {/* New Post button removed as requested */}
           </div>
           <div className="space-y-3">
