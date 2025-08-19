@@ -418,10 +418,6 @@ export default function LoginPage() {
           </h1>
           <p className="text-muted-foreground mt-2">School Management System</p>
         </div>
-        {/* Divider above banner carousel */}
-        <div className="w-full flex justify-center mb-8">
-          <div className="h-[2px] w-2/3 bg-gray-200 rounded-full" />
-        </div>
         {/* Banner Carousel just below heading */}
         {banners.length > 0 && (
           <div
@@ -808,7 +804,7 @@ export default function LoginPage() {
                     </>
                   )}
                   <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    Note:- Admin and Faculty can log in directly. Only new students have to register! | Facing Problem? Contact us:- 9204520826 for help!
+                    Note:- Admin and Teacher can log in directly. Only new students have to register! | Facing Problem? Contact us:- 9204520826 for help!
                   </div>
                   {(role === 'faculty' || role === 'admin') && (
                     <Button
