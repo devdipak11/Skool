@@ -10,6 +10,9 @@ router.get('/subjects', authMiddleware, roleMiddleware('Faculty'), facultyContro
 // Route to get details of an assigned subject (students count and names)
 router.get('/subjects/:subjectId', authMiddleware, roleMiddleware('Faculty'), facultyController.getAssignedSubjectDetails);
 
+// Route to get students enrolled in a subject (for class teacher)
+router.get('/subjects/:subjectId/students', authMiddleware, roleMiddleware('Faculty'), facultyController.getStudentsOfSubject);
+
 // Route to create a new announcement
 router.post('/announcements', authMiddleware, roleMiddleware('Faculty'), facultyController.addAnnouncement);
 
@@ -40,5 +43,9 @@ const roleFaculty = [authMiddleware, roleMiddleware('Faculty')];
 
 // Faculty posts a comment to an announcement
 router.post('/announcements/:announcementId/comments', ...roleFaculty, facultyController.postCommentToAnnouncementAsFaculty);
+
+// Attendance management
+router.post('/subjects/:subjectId/attendance', authMiddleware, roleMiddleware('Faculty'), facultyController.markAttendance);
+router.get('/subjects/:subjectId/attendance', authMiddleware, roleMiddleware('Faculty'), facultyController.getAttendanceForSubjectDate);
 
 module.exports = router;

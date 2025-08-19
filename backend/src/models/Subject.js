@@ -23,6 +23,10 @@ const subjectSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    isClassTeacher: {
+        type: Boolean,
+        default: false
+    },
     announcements: [announcementSchema],
     createdAt: {
         type: Date,

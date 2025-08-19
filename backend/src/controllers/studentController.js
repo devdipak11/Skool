@@ -128,7 +128,7 @@ exports.getEnrolledSubjects = async (req, res) => {
         
         const student = await Student.findById(req.user.id).populate({
             path: 'subjects',
-            select: 'name code description faculty className', // Select specific fields
+            select: 'name code description faculty className isClassTeacher', // <-- add isClassTeacher here
             populate: {
                 path: 'faculty',
                 select: 'name' // Only get faculty name

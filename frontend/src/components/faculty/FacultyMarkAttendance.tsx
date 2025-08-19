@@ -1,0 +1,339 @@
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AppHeader from '@/components/layout/AppHeader';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, CheckCircle, XCircle, Users, Calendar, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BACKEND_URL } from '@/utils/utils';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+const monthNames = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+export default function FacultyMarkAttendance() {
+  const { token } = useAuth();
+  const [students, setStudents] = useState<any[]>([]);
+  const [subject, setSubject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Attendance state: { studentId: 'Present' | 'Absent' }
+  const [attendance, setAttendance] = useState<Record<string, 'Present' | 'Absent'>>({});
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('all');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [month, setMonth] = useState(String(new Date().getMonth() + 1));
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+
+  // Fetch subject and students
+  useEffect(() => {
+    const fetchClassTeacherSubject = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/faculty/subjects`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!res.ok) throw new Error('Failed to fetch assigned subjects');
+        const data = await res.json();
+        const classTeacherSubject = Array.isArray(data) ? data.find((s: any) => s.isClassTeacher) : null;
+        if (!classTeacherSubject) throw new Error('You are not a class teacher for any subject.');
+        setSubject(classTeacherSubject);
+
+        const studentsRes = await fetch(`${BACKEND_URL}/api/faculty/subjects/${classTeacherSubject._id}/students`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!studentsRes.ok) throw new Error('Failed to fetch students');
+        const studentsData = await studentsRes.json();
+        setStudents(Array.isArray(studentsData) ? studentsData : []);
+        // Reset attendance state
+        setAttendance({});
+      } catch (err: any) {
+        setError(err.message || 'Error loading data');
+        setStudents([]);
+        setSubject(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (token) fetchClassTeacherSubject();
+  }, [token]);
+
+  // Fetch attendance for selected date
+  useEffect(() => {
+    if (!subject?._id || !date || !token) return;
+    const fetchAttendance = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/faculty/subjects/${subject._id}/attendance?date=${date}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Map: studentId -> status
+          const att: Record<string, 'Present' | 'Absent'> = {};
+          data.forEach((rec: any) => {
+            att[rec.student?._id || rec.student?.id || rec.student] = rec.status;
+          });
+          setAttendance(att);
+        } else {
+          setAttendance({});
+        }
+      } catch {
+        setAttendance({});
+      }
+    };
+    fetchAttendance();
+  }, [subject?._id, date, token]);
+
+  // Fetch attendance records for export (with timestamp)
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  useEffect(() => {
+    if (!subject?._id || !date || !token) return;
+    const fetchAttendanceRecords = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/faculty/subjects/${subject._id}/attendance?date=${date}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAttendanceRecords(Array.isArray(data) ? data : []);
+        } else {
+          setAttendanceRecords([]);
+        }
+      } catch {
+        setAttendanceRecords([]);
+      }
+    };
+    fetchAttendanceRecords();
+  }, [subject?._id, date, token]);
+
+  // Save attendance to backend
+  const saveAttendance = async () => {
+    if (!subject?._id || !date) return;
+    const attendanceArr = students.map(s => ({
+      studentId: s._id || s.id,
+      status: attendance[s._id || s.id] || 'Absent'
+    }));
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/faculty/subjects/${subject._id}/attendance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ date, attendance: attendanceArr }),
+      });
+      if (!res.ok) throw new Error('Failed to save attendance');
+      // Optionally show a toast or message
+      alert('Attendance saved!');
+    } catch (e: any) {
+      alert(e.message || 'Error saving attendance');
+    }
+  };
+
+  // Export attendance as PDF
+  const handleExportReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Attendance Report", 14, 16);
+
+    const tableColumn = [
+      "Name",
+      "Roll No",
+      "Status",
+      "Marked At"
+    ];
+
+    const tableRows: any[] = [];
+
+    students.forEach((student) => {
+      const rec = attendanceRecords.find(
+        (r) => (r.student?._id || r.student?.id || r.student) === (student._id || student.id)
+      );
+      tableRows.push([
+        student.name,
+        student.rollNo,
+        rec ? rec.status : (attendance[student._id || student.id] || 'Absent'),
+        rec && rec.markedAt ? new Date(rec.markedAt).toLocaleString() : "-"
+      ]);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 24,
+      styles: { fontSize: 10 }
+    });
+
+    doc.save(`attendance_report_${date}.pdf`);
+  };
+
+  // Stats
+  const total = students.length;
+  const present = Object.values(attendance).filter(v => v === 'Present').length;
+  const absent = Object.values(attendance).filter(v => v === 'Absent').length;
+
+  // Filtered students
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = (s.name?.toLowerCase() || '').includes(search.toLowerCase()) || (s.rollNo || '').includes(search);
+    const status = attendance[s._id || s.id];
+    if (filter === 'present' && status !== 'Present') return false;
+    if (filter === 'absent' && status !== 'Absent') return false;
+    return matchesSearch;
+  });
+
+  // Toggle attendance
+  const toggleAttendance = (studentId: string, status: 'Present' | 'Absent') => {
+    setAttendance(prev => ({ ...prev, [studentId]: status }));
+  };
+
+  // Date/month/year change handlers
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(e.target.value);
+    setMonth(String(new Date(e.target.value).getMonth() + 1));
+    setYear(String(new Date(e.target.value).getFullYear()));
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AppHeader title="Attendance Management" />
+      <div className="p-4 space-y-6">
+        {/* Export Report Button */}
+        <div className="flex items-center justify-between mb-2">
+          <div />
+          <Button variant="outline" size="sm" onClick={handleExportReport}>
+            {/* Download icon SVG */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" /></svg>
+            Export Report
+          </Button>
+        </div>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+              <p className="text-2xl font-bold">{total}</p>
+              <p className="text-sm text-muted-foreground">Total Students</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold">{present}</p>
+              <p className="text-sm text-muted-foreground">Present</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold">{absent}</p>
+              <p className="text-sm text-muted-foreground">Absent</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Calendar className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <p className="text-base font-medium">{monthNames.find(m => m.value === month)?.label} {year}</p>
+              <p className="text-xs text-muted-foreground">Selected Date: {date}</p>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Filters */}
+        <Card>
+          <CardContent className="p-4 flex flex-wrap gap-4 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Search students..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={filter} onValueChange={v => setFilter(v as any)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="present">Present</SelectItem>
+                <SelectItem value="absent">Absent</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={date}
+              onChange={handleDateChange}
+              className="w-[160px]"
+            />
+          </CardContent>
+        </Card>
+        {/* Students List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Students Attendance</CardTitle>
+            <Button className="ml-auto" onClick={saveAttendance}>Save Attendance</Button>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="p-4 flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" /> Loading...</div>
+            ) : error ? (
+              <div className="p-4 text-destructive">{error}</div>
+            ) : (
+              <div className="space-y-0">
+                {filteredStudents.length === 0 ? (
+                  <div className="p-4 text-muted-foreground">No students found.</div>
+                ) : filteredStudents.map((student) => (
+                  <div key={student._id || student.id} className="flex items-center justify-between p-4 border-b border-border last:border-b-0">
+                    <div>
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">{student.rollNo}</p>
+                      {/* Show timestamp if present */}
+                      {(() => {
+                        const attRec = Object.entries(attendance).find(([id]) => id === (student._id || student.id));
+                        if (attRec && attRec[1]) {
+                          // Find timestamp from attendance records if available
+                          // (You may extend this to show the real timestamp if you fetch it)
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={attendance[student._id || student.id] === 'Present' ? 'default' : 'outline'}
+                        onClick={() => toggleAttendance(student._id || student.id, 'Present')}
+                      >
+                        Present
+                      </Button>
+                      <Button
+                        variant={attendance[student._id || student.id] === 'Absent' ? 'destructive' : 'outline'}
+                        onClick={() => toggleAttendance(student._id || student.id, 'Absent')}
+                      >
+                        Absent
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

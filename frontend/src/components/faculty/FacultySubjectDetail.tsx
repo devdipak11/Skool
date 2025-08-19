@@ -361,6 +361,7 @@ export default function SubjectDetail() {
           </div>
           <div className="text-lg text-white/90 mb-2">
             {subject?.code} · {subject?.className}
+            {/* Removed Class Teacher badge */}
           </div>
           <div className="text-base text-white/80">
             Session: 2025-26 

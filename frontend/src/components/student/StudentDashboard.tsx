@@ -462,81 +462,94 @@ export default function StudentHome() {
             </Card>
           ) : (
             <div className="flex flex-wrap gap-6">
-              {enrolledSubjects.map((subject, index) => {
-                // Use a palette of gradients for variety
-                const gradients = [
-                  'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)', // green
-                  'linear-gradient(90deg, #4f8ef7 60%, #1e3c72 100%)', // blue
-                  'linear-gradient(90deg, #f7b42c 60%, #fc575e 100%)', // orange-red
-                  'linear-gradient(90deg, #a770ef 60%, #f6d365 100%)', // purple-yellow
-                  'linear-gradient(90deg, #43cea2 60%, #185a9d 100%)', // teal-blue
-                  'linear-gradient(90deg, #ff6a00 60%, #ee0979 100%)', // orange-pink
-                  'linear-gradient(90deg, #00c3ff 60%, #ffff1c 100%)', // blue-yellow
-                ];
-                const cardGradient = gradients[index % gradients.length];
-                return (
-                  <div
-                    key={subject._id}
-                    className="rounded-2xl border bg-white shadow-sm overflow-hidden cursor-pointer transition hover:shadow-lg relative"
-                    style={{ minHeight: 260, maxWidth: 340, width: '340px', flex: '0 0 auto' }}
-                    onClick={() => navigate(`/student/subject/${subject._id}`)}
-                  >
-                    <div className="relative">
-                      {/* 3-dot menu button */}
-                      <div className="absolute top-3 right-3 z-20">
-                        <button
-                          className="p-1 rounded-full hover:bg-gray-200 focus:outline-none"
-                          onClick={e => { e.stopPropagation(); setMenuOpenId(menuOpenId === subject._id ? null : subject._id); }}
+              {enrolledSubjects
+                // Sort: class teacher subjects first, then others (optional, but matches faculty dashboard)
+                .slice()
+                .sort((a, b) => {
+                  if ((a as any).isClassTeacher === (b as any).isClassTeacher) return 0;
+                  return (a as any).isClassTeacher ? -1 : 1;
+                })
+                .map((subject, index) => {
+                  // Use a palette of gradients for variety
+                  const gradients = [
+                    'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)', // green
+                    'linear-gradient(90deg, #4f8ef7 60%, #1e3c72 100%)', // blue
+                    'linear-gradient(90deg, #f7b42c 60%, #fc575e 100%)', // orange-red
+                    'linear-gradient(90deg, #a770ef 60%, #f6d365 100%)', // purple-yellow
+                    'linear-gradient(90deg, #43cea2 60%, #185a9d 100%)', // teal-blue
+                    'linear-gradient(90deg, #ff6a00 60%, #ee0979 100%)', // orange-pink
+                    'linear-gradient(90deg, #00c3ff 60%, #ffff1c 100%)', // blue-yellow
+                  ];
+                  const cardGradient = gradients[index % gradients.length];
+                  return (
+                    <div
+                      key={subject._id}
+                      className="rounded-2xl border bg-white shadow-sm overflow-hidden cursor-pointer transition hover:shadow-lg relative"
+                      style={{ minHeight: 260, maxWidth: 340, width: '340px', flex: '0 0 auto' }}
+                      onClick={() => navigate(`/student/subject/${subject._id}`)}
+                    >
+                      <div className="relative">
+                        {/* 3-dot menu button */}
+                        <div className="absolute top-3 right-3 z-20">
+                          <button
+                            className="p-1 rounded-full hover:bg-gray-200 focus:outline-none"
+                            onClick={e => { e.stopPropagation(); setMenuOpenId(menuOpenId === subject._id ? null : subject._id); }}
+                          >
+                            <MoreVertical size={20} />
+                          </button>
+                          {menuOpenId === subject._id && (
+                            <div ref={menuRef} className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30 flex flex-col">
+                              <button
+                                className="px-4 py-2 text-left hover:bg-gray-100 text-red-600"
+                                onClick={e => { e.stopPropagation(); handleUnenroll(subject.code); }}
+                              >
+                                Unenroll
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {/* Card header with gradient and subject info */}
+                        <div
+                          className="relative px-6 pt-6 pb-4"
+                          style={{
+                            background: cardGradient,
+                            minHeight: 90,
+                          }}
                         >
-                          <MoreVertical size={20} />
-                        </button>
-                        {menuOpenId === subject._id && (
-                          <div ref={menuRef} className="absolute right-0 mt-2 w-32 bg-white border rounded shadow z-30 flex flex-col">
-                            <button
-                              className="px-4 py-2 text-left hover:bg-gray-100 text-red-600"
-                              onClick={e => { e.stopPropagation(); handleUnenroll(subject.code); }}
-                            >
-                              Unenroll
-                            </button>
+                          <div className="text-2xl font-bold text-white truncate" title={subject.name}>
+                            {subject.name}
                           </div>
-                        )}
-                      </div>
-                      {/* Card header with gradient and subject info */}
-                      <div
-                        className="relative px-6 pt-6 pb-4"
-                        style={{
-                          background: cardGradient,
-                          minHeight: 90,
-                        }}
-                      >
-                        <div className="text-2xl font-bold text-white truncate" title={subject.name}>
-                          {subject.name}
-                        </div>
-                        <div className="text-white text-base mt-1">
-                          {subject.faculty || "Faculty Name"}
-                        </div>
-                        {/* Avatar or faculty initial */}
-                        <div className="absolute right-6 bottom-[-28px]">
-                          <div className="w-14 h-14 rounded-full bg-gray-400 flex items-center justify-center text-3xl font-semibold text-white border-4 border-white shadow-md">
-                            {subject.faculty
-                              ? subject.faculty[0].toUpperCase()
-                              : <UserCircle size={36} />}
+                          <div className="text-white text-base mt-1">
+                            {subject.faculty || "Faculty Name"}
+                          </div>
+                          {/* Class Teacher badge if subject.isClassTeacher is true */}
+                          {(subject as any).isClassTeacher ? (
+                            <span className="absolute top-4 right-6 bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded shadow">
+                              Class Teacher
+                            </span>
+                          ) : null}
+                          {/* Avatar or faculty initial */}
+                          <div className="absolute right-6 bottom-[-28px]">
+                            <div className="w-14 h-14 rounded-full bg-gray-400 flex items-center justify-center text-3xl font-semibold text-white border-4 border-white shadow-md">
+                              {subject.faculty
+                                ? subject.faculty[0].toUpperCase()
+                                : <UserCircle size={36} />}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {/* Card body */}
-                      <div className="pt-8 pb-8 px-6 flex flex-col gap-2 min-h-[80px]">
-                        <div className="text-gray-700 text-sm">
-                          <span className="font-semibold">Code:</span> {subject.code}
-                        </div>
-                        <div className="text-sm font-semibold text-gray-700">
-                          <span className="font-bold">Class:</span> {(subject as any).className || ''}
+                        {/* Card body */}
+                        <div className="pt-8 pb-8 px-6 flex flex-col gap-2 min-h-[80px]">
+                          <div className="text-gray-700 text-sm">
+                            <span className="font-semibold">Code:</span> {subject.code}
+                          </div>
+                          <div className="text-sm font-semibold text-gray-700">
+                            <span className="font-bold">Class:</span> {(subject as any).className || ''}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </div>

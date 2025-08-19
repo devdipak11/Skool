@@ -4,6 +4,7 @@ const Announcement = require('../models/announcement');
 const Comment = require('../models/Comment');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const Attendance = require('../models/attendance.model');
 
 
 
@@ -42,6 +43,26 @@ exports.getAssignedSubjectDetails = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching subject details', error });
+    }
+};
+
+// Get students enrolled in a subject (for class teacher)
+exports.getStudentsOfSubject = async (req, res) => {
+    try {
+        const facultyId = req.user.id;
+        const { subjectId } = req.params;
+
+        // Ensure the subject is assigned to this faculty
+        const subject = await Subject.findOne({ _id: subjectId, faculty: facultyId });
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found or not assigned to you' });
+        }
+
+        // Find students registered in this subject
+        const students = await require('../models/Student').find({ subjects: subjectId }).select('name rollNo');
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching students', error });
     }
 };
 
@@ -238,4 +259,68 @@ exports.createClassworkSection = async (req, res) => { res.status(501).json({ me
 
 // Assign marks to students
 exports.assignMarksToStudents = async (req, res) => { res.status(501).json({ message: 'Not implemented' }); };
+
+// Mark attendance for students (bulk or single)
+exports.markAttendance = async (req, res) => {
+    try {
+        const facultyId = req.user.id;
+        const { subjectId } = req.params;
+        const { date, attendance } = req.body; // attendance: [{ studentId, status }]
+        if (!date || !Array.isArray(attendance)) {
+            return res.status(400).json({ message: 'date and attendance array required' });
+        }
+
+        // Ensure faculty is assigned to this subject
+        const subject = await Subject.findOne({ _id: subjectId, faculty: facultyId });
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found or not assigned to you' });
+        }
+
+        // Upsert attendance for each student
+        const ops = attendance.map(a => ({
+            updateOne: {
+                filter: { subject: subjectId, date, student: a.studentId },
+                update: {
+                    $set: {
+                        subject: subjectId,
+                        faculty: facultyId,
+                        date,
+                        student: a.studentId,
+                        status: a.status,
+                        markedAt: new Date()
+                    }
+                },
+                upsert: true
+            }
+        }));
+        await Attendance.bulkWrite(ops);
+
+        res.status(200).json({ message: 'Attendance marked successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error marking attendance', error });
+    }
+};
+
+// Get attendance for a subject and date
+exports.getAttendanceForSubjectDate = async (req, res) => {
+    try {
+        const facultyId = req.user.id;
+        const { subjectId } = req.params;
+        const { date } = req.query;
+        if (!date) return res.status(400).json({ message: 'date is required' });
+
+        // Ensure faculty is assigned to this subject
+        const subject = await Subject.findOne({ _id: subjectId, faculty: facultyId });
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found or not assigned to you' });
+        }
+
+        const records = await Attendance.find({ subject: subjectId, date })
+            .select('student status markedAt')
+            .populate('student', 'name rollNo');
+        res.status(200).json(records);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching attendance', error });
+    }
+};
 

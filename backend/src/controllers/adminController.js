@@ -228,15 +228,17 @@ exports.searchTeachers = async (req, res) => {
 
 // Manage Subjects
 exports.createSubject = async (req, res) => {
-    const { name, code, className, teacherName } = req.body;
+    const { name, code, className, teacherName, isClassTeacher } = req.body;
     try {
         let facultyId = undefined;
+        let classTeacherFlag = false;
         if (teacherName) {
             const faculty = await Faculty.findOne({ name: teacherName });
             if (!faculty) {
                 return res.status(404).json({ message: 'Teacher not found' });
             }
             facultyId = faculty._id;
+            classTeacherFlag = !!isClassTeacher;
         }
         // Allow duplicate names but require unique code+className
         const existing = await Subject.findOne({ code, className });
@@ -247,7 +249,8 @@ exports.createSubject = async (req, res) => {
             name,
             code,
             className,
-            faculty: facultyId // can be undefined if no teacherName provided
+            faculty: facultyId, // can be undefined if no teacherName provided
+            isClassTeacher: facultyId ? classTeacherFlag : false
         });
         const savedSubject = await newSubject.save();
         // Always populate faculty (will be null if not assigned)
@@ -280,6 +283,13 @@ exports.updateSubject = async (req, res) => {
                 return res.status(404).json({ message: 'Teacher not found' });
             }
             updateData.faculty = faculty._id;
+            // Only set isClassTeacher if teacher is assigned
+            updateData.isClassTeacher = !!updateData.isClassTeacher;
+            delete updateData.teacherName;
+        } else {
+            // If no teacher, ensure isClassTeacher is false
+            updateData.faculty = undefined;
+            updateData.isClassTeacher = false;
             delete updateData.teacherName;
         }
         const updatedSubject = await Subject.findByIdAndUpdate(id, updateData, { new: true }).populate('faculty', 'name');

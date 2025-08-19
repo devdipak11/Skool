@@ -30,7 +30,8 @@ export default function SubjectManagement() {
     name: '',
     code: '',
     className: '',
-    teacherName: ''
+    teacherName: '',
+    isClassTeacher: false
   });
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +106,7 @@ export default function SubjectManagement() {
 
   // Create subject via backend
   const handleCreateSubject = async () => {
-    if (!newSubject.name || !newSubject.code || !newSubject.className || !newSubject.teacherName) {
+    if (!newSubject.name || !newSubject.code || !newSubject.className) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -115,7 +116,12 @@ export default function SubjectManagement() {
     }
     try {
       const authToken = token || localStorage.getItem('token');
-      const res = await axios.post('/api/admin/subjects', newSubject, {
+      // Remove teacherName if empty string (so backend doesn't try to assign)
+      const payload: any = { ...newSubject };
+      if (!payload.teacherName) delete payload.teacherName;
+      // If no teacher, also remove isClassTeacher
+      if (!payload.teacherName) delete payload.isClassTeacher;
+      const res = await axios.post('/api/admin/subjects', payload, {
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
       setSubjects(prev => [...prev, res.data]);
@@ -123,7 +129,7 @@ export default function SubjectManagement() {
         title: "Subject Created",
         description: `Subject "${res.data.name}" has been created successfully`,
       });
-      setNewSubject({ name: '', code: '', className: '', teacherName: '' });
+      setNewSubject({ name: '', code: '', className: '', teacherName: '', isClassTeacher: false });
       setIsCreateDialogOpen(false);
     } catch (err: any) {
       let errorMsg = err?.response?.data?.message || "Failed to create subject";
@@ -169,7 +175,8 @@ export default function SubjectManagement() {
       name: subject.name || '',
       code: subject.code || '',
       className: subject.className || '',
-      teacherName: subject.faculty?.name || ''
+      teacherName: subject.faculty?.name || '',
+      isClassTeacher: !!subject.isClassTeacher
     });
     setIsEditDialogOpen(true);
   };
@@ -185,12 +192,15 @@ export default function SubjectManagement() {
     }
     try {
       const authToken = token || localStorage.getItem('token');
-      await axios.put(`/api/admin/subjects/${editSubject._id}`, {
+      const payload: any = {
         name: editSubject.name,
         code: editSubject.code,
         className: editSubject.className,
-        teacherName: editSubject.teacherName
-      }, {
+        teacherName: editSubject.teacherName,
+        isClassTeacher: editSubject.isClassTeacher
+      };
+      if (!payload.teacherName) delete payload.isClassTeacher;
+      await axios.put(`/api/admin/subjects/${editSubject._id}`, payload, {
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
       await fetchSubjects(); // Re-fetch subjects to get populated data
@@ -282,6 +292,18 @@ export default function SubjectManagement() {
                     <option key={f._id} value={f.name}>{f.name}</option>
                   ))}
                 </select>
+                <div className="flex items-center mt-2">
+                  <input
+                    id="isClassTeacher"
+                    type="checkbox"
+                    className="mr-2"
+                    checked={newSubject.isClassTeacher}
+                    disabled={!newSubject.teacherName}
+                    onChange={e => setNewSubject({ ...newSubject, isClassTeacher: e.target.checked })}
+                  />
+                  <Label htmlFor="isClassTeacher" className="text-sm">Mark as Class Teacher</Label>
+                </div>
+                <span className="text-xs text-muted-foreground">You can also assign a teacher later by editing the subject.</span>
               </div>
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleCreateSubject} className="flex-1">
@@ -370,6 +392,9 @@ export default function SubjectManagement() {
                       <h3 className="text-lg font-semibold text-foreground">{subject.name || "No Name"}</h3>
                       <p className="text-sm text-muted-foreground mb-2">
                         {subject.code || "No Code"} • {subject.className || "No Class"} • {subject.faculty?.name ?? "null"}
+                        {subject.isClassTeacher && subject.faculty?.name ? (
+                          <span className="ml-2 px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">Class Teacher</span>
+                        ) : null}
                       </p>
                       <p className="text-sm text-muted-foreground mb-3">{subject.description || ''}</p>
                     </div>
@@ -449,6 +474,17 @@ export default function SubjectManagement() {
                   <option key={f._id} value={f.name}>{f.name}</option>
                 ))}
               </select>
+              <div className="flex items-center mt-2">
+                <input
+                  id="editIsClassTeacher"
+                  type="checkbox"
+                  className="mr-2"
+                  checked={!!editSubject?.isClassTeacher}
+                  disabled={!editSubject?.teacherName}
+                  onChange={e => setEditSubject((prev: any) => ({ ...prev, isClassTeacher: e.target.checked }))}
+                />
+                <Label htmlFor="editIsClassTeacher" className="text-sm">Mark as Class Teacher</Label>
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>

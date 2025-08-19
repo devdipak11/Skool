@@ -15,6 +15,7 @@ import BottomNavigation from "@/components/layout/BottomNavigation";
 import NotFound from "./pages/NotFound";
 import SubjectDetail from "@/components/faculty/FacultySubjectDetail";
 import FacultyProfile from "@/components/faculty/FacultyProfile";
+import FacultyMarkAttendance from "@/components/faculty/FacultyMarkAttendance";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,11 @@ function AppRoutes() {
         <Route path="/faculty/profile" element={
           <ProtectedRoute allowedRoles={['faculty']}>
             <FacultyProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/faculty/markattendance" element={
+          <ProtectedRoute allowedRoles={['faculty']}>
+            <FacultyMarkAttendance />
           </ProtectedRoute>
         } />
         
