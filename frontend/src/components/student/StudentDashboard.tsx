@@ -364,7 +364,7 @@ export default function StudentHome() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#181A20]">
       <AppHeader title="Tagore Public School" />
       
       <div className="p-4 pb-20 space-y-6">
