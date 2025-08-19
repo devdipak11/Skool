@@ -30,7 +30,13 @@ export default function AppHeader({ title, showProfile = true, onMenuClick, show
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
+    <header
+      className="sticky top-0 z-40 border-b border-border"
+      style={{
+        background: "linear-gradient(90deg, #3556b0 60%, #223a7a 100%)",
+        color: "#fff"
+      }}
+    >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           {showMenu && (
@@ -39,14 +45,15 @@ export default function AppHeader({ title, showProfile = true, onMenuClick, show
               size="icon"
               onClick={onMenuClick}
               className="lg:hidden"
+              style={{ color: "#fff" }}
             >
               <Menu className="w-5 h-5" />
             </Button>
           )}
           <div>
-            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+            <h1 className="text-lg font-semibold" style={{ color: "#fff" }}>{title}</h1>
             {user && (
-              <p className="text-sm text-muted-foreground capitalize">
+              <p className="text-sm capitalize" style={{ color: "#e0e7ef" }}>
                 {user.role} Dashboard
               </p>
             )}
@@ -54,7 +61,7 @@ export default function AppHeader({ title, showProfile = true, onMenuClick, show
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative" style={{ color: "#fff" }}>
             <Bell className="w-5 h-5" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-xs text-white flex items-center justify-center">
               3
@@ -66,10 +73,11 @@ export default function AppHeader({ title, showProfile = true, onMenuClick, show
               variant="ghost"
               className="flex items-center gap-2 p-2"
               onClick={handleProfileClick}
+              style={{ color: "#fff" }}
             >
               <Avatar className="w-8 h-8">
                 <AvatarImage src={user.profilePicture} alt={user.name} />
-                <AvatarFallback className="text-xs">
+                <AvatarFallback className="text-xs" style={{ color: "#223a7a", background: "#fff" }}>
                   {user.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
@@ -81,7 +89,8 @@ export default function AppHeader({ title, showProfile = true, onMenuClick, show
             variant="ghost"
             size="icon"
             onClick={handleLogout}
-            className="text-muted-foreground hover:text-destructive"
+            className="hover:text-destructive"
+            style={{ color: "#fff" }}
           >
             <LogOut className="w-5 h-5" />
           </Button>
