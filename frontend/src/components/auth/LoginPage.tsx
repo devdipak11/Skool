@@ -384,11 +384,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col items-center justify-center p-4">
-      {/* Login/Register Card with heading at top, then banner carousel, then form */}
-      <div className="w-full max-w-xl animate-fade-in bg-white/90 rounded-3xl shadow-xl px-6 py-12 flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col items-center justify-center p-0 sm:p-4">
+      {/* Responsive: On mobile, use full width and height, no max-w, no rounded corners, no shadow */}
+      <div
+        className={`
+          w-full
+          ${/* On mobile: full height, no rounded, no shadow; on desktop: max-w-xl, rounded, shadow */''}
+          min-h-screen
+          sm:min-h-0
+          sm:max-w-xl
+          sm:animate-fade-in
+          bg-white/90
+          ${typeof window !== "undefined" && window.innerWidth < 640
+            ? ''
+            : 'rounded-3xl shadow-xl px-6 py-12 flex flex-col items-center'
+          }
+          flex flex-col items-center
+          px-0 sm:px-6
+          py-0 sm:py-12
+        `}
+        style={{
+          borderRadius: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : undefined,
+          boxShadow: typeof window !== "undefined" && window.innerWidth < 640 ? 'none' : undefined,
+        }}
+      >
         {/* School heading and icon at the top */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 mt-8 sm:mt-0">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl mb-4 shadow-card">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
@@ -434,7 +455,10 @@ export default function LoginPage() {
           </div>
         )}
         {/* Login/Register Form Card */}
-        <Card className="shadow-card border-0 bg-card/80 backdrop-blur-sm w-full">
+        <Card className={`
+          shadow-card border-0 bg-card/80 backdrop-blur-sm w-full
+          ${typeof window !== "undefined" && window.innerWidth < 640 ? 'rounded-none shadow-none border-none' : ''}
+        `}>
           <CardHeader className="space-y-1">
             <div className="flex justify-center gap-2 mb-4">
               <Button
