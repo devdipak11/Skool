@@ -179,47 +179,60 @@ export default function FacultyDashboard() {
               <p className="text-sm text-muted-foreground">No subjects assigned yet.</p>
             )}
 
-            {assignedSubjects.map((subject: any) => (
-              <div
-                key={subject._id}
-                className="rounded-2xl border bg-white shadow-sm overflow-hidden cursor-pointer transition hover:shadow-lg"
-                style={{ minHeight: 260, maxWidth: 340, width: '100%' }}
-                onClick={() => navigate(`/faculty/subject/${subject._id}`)}
-              >
-                {/* Card header with gradient and subject info */}
+            {assignedSubjects.map((subject: any, index: number) => {
+              // Use a palette of gradients for variety (same as student dashboard)
+              const gradients = [
+                'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)', // green
+                'linear-gradient(90deg, #4f8ef7 60%, #1e3c72 100%)', // blue
+                'linear-gradient(90deg, #f7b42c 60%, #fc575e 100%)', // orange-red
+                'linear-gradient(90deg, #a770ef 60%, #f6d365 100%)', // purple-yellow
+                'linear-gradient(90deg, #43cea2 60%, #185a9d 100%)', // teal-blue
+                'linear-gradient(90deg, #ff6a00 60%, #ee0979 100%)', // orange-pink
+                'linear-gradient(90deg, #00c3ff 60%, #ffff1c 100%)', // blue-yellow
+              ];
+              const cardGradient = gradients[index % gradients.length];
+              return (
                 <div
-                  className="relative px-6 pt-6 pb-4"
-                  style={{
-                    background: 'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)',
-                    minHeight: 90,
-                  }}
+                  key={subject._id}
+                  className="rounded-2xl border bg-white shadow-sm overflow-hidden cursor-pointer transition hover:shadow-lg"
+                  style={{ minHeight: 260, maxWidth: 340, width: '100%' }}
+                  onClick={() => navigate(`/faculty/subject/${subject._id}`)}
                 >
-                  <div className="text-2xl font-bold text-white truncate" title={subject.name}>
-                    {subject.name}
+                  {/* Card header with gradient and subject info */}
+                  <div
+                    className="relative px-6 pt-6 pb-4"
+                    style={{
+                      background: cardGradient,
+                      minHeight: 90,
+                    }}
+                  >
+                    <div className="text-2xl font-bold text-white truncate" title={subject.name}>
+                      {subject.name}
+                    </div>
+                    <div className="text-white text-base mt-1">
+                      {subject.faculty?.name || "Faculty Name"}
+                    </div>
+                    {/* Avatar or faculty initial */}
+                    <div className="absolute right-6 bottom-[-28px]">
+                      <div className="w-14 h-14 rounded-full bg-gray-400 flex items-center justify-center text-3xl font-semibold text-white border-4 border-white shadow-md">
+                        {subject.faculty?.name
+                          ? subject.faculty.name[0].toUpperCase()
+                          : <UserCircle size={36} />}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-white text-base mt-1">
-                    {subject.faculty?.name || "Faculty Name"}
-                  </div>
-                  {/* Avatar or faculty initial */}
-                  <div className="absolute right-6 bottom-[-28px]">
-                    <div className="w-14 h-14 rounded-full bg-gray-400 flex items-center justify-center text-3xl font-semibold text-white border-4 border-white shadow-md">
-                      {subject.faculty?.name
-                        ? subject.faculty.name[0].toUpperCase()
-                        : <UserCircle size={36} />}
+                  {/* Card body */}
+                  <div className="pt-8 pb-8 px-6 flex flex-col gap-2 min-h-[80px]">
+                    <div className="text-gray-700 text-sm">
+                      <span className="font-semibold">Code:</span> {subject.code}
+                    </div>
+                    <div className="text-gray-700 text-sm">
+                      <span className="font-semibold">Class:</span> {subject.className}
                     </div>
                   </div>
                 </div>
-                {/* Card body */}
-                <div className="pt-8 pb-8 px-6 flex flex-col gap-2 min-h-[80px]">
-                  <div className="text-gray-700 text-sm">
-                    <span className="font-semibold">Code:</span> {subject.code}
-                  </div>
-                  <div className="text-gray-700 text-sm">
-                    <span className="font-semibold">Class:</span> {subject.className}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

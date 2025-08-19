@@ -8,6 +8,27 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MoreVertical, Loader2 } from 'lucide-react';
 import { BACKEND_URL } from '@/utils/utils';
 
+// Helper: Deterministic gradient assignment based on subject id or code
+function getSubjectGradient(subject: any) {
+  const gradients = [
+    'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)', // green
+    'linear-gradient(90deg, #4f8ef7 60%, #1e3c72 100%)', // blue
+    'linear-gradient(90deg, #f7b42c 60%, #fc575e 100%)', // orange-red
+    'linear-gradient(90deg, #a770ef 60%, #f6d365 100%)', // purple-yellow
+    'linear-gradient(90deg, #43cea2 60%, #185a9d 100%)', // teal-blue
+    'linear-gradient(90deg, #ff6a00 60%, #ee0979 100%)', // orange-pink
+    'linear-gradient(90deg, #00c3ff 60%, #ffff1c 100%)', // blue-yellow
+  ];
+  // Use subject._id, subject.id, or subject.code for deterministic assignment
+  const key = subject?._id || subject?.id || subject?.code || '';
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+}
+
 export default function SubjectDetail() {
   const { id: subjectId } = useParams();
   const { token } = useAuth();
@@ -328,7 +349,7 @@ export default function SubjectDetail() {
       <div
         className="rounded-2xl shadow-md mb-6 flex items-center"
         style={{
-          background: 'linear-gradient(90deg, #23272f 60%, #2d3748 100%)',
+          background: subject ? getSubjectGradient(subject) : 'linear-gradient(90deg, #23272f 60%, #2d3748 100%)',
           minHeight: '140px',
           padding: '2rem 2.5rem',
           position: 'relative',
@@ -342,7 +363,7 @@ export default function SubjectDetail() {
             {subject?.code} · {subject?.className}
           </div>
           <div className="text-base text-white/80">
-            Students enrolled: {subject?.studentCount ?? '-'}
+            Session: 2025-26 
           </div>
         </div>
       </div>

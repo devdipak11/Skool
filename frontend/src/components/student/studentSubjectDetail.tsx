@@ -7,6 +7,26 @@ import { Loader2, MoreVertical } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 
+// Helper: Deterministic gradient assignment based on subject id or code
+function getSubjectGradient(subject: any) {
+  const gradients = [
+    'linear-gradient(90deg, #5ba97b 60%, #3b5c6b 100%)', // green
+    'linear-gradient(90deg, #4f8ef7 60%, #1e3c72 100%)', // blue
+    'linear-gradient(90deg, #f7b42c 60%, #fc575e 100%)', // orange-red
+    'linear-gradient(90deg, #a770ef 60%, #f6d365 100%)', // purple-yellow
+    'linear-gradient(90deg, #43cea2 60%, #185a9d 100%)', // teal-blue
+    'linear-gradient(90deg, #ff6a00 60%, #ee0979 100%)', // orange-pink
+    'linear-gradient(90deg, #00c3ff 60%, #ffff1c 100%)', // blue-yellow
+  ];
+  const key = subject?._id || subject?.id || subject?.code || '';
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+}
+
 export default function StudentSubjectDetail() {
   const { id: subjectId } = useParams<{ id: string }>();
   const { token, user } = useAuth();
@@ -204,7 +224,7 @@ export default function StudentSubjectDetail() {
             <div
               className="rounded-2xl shadow-md mb-6 flex items-center"
               style={{
-                background: 'linear-gradient(90deg, #23272f 60%, #2d3748 100%)',
+                background: subject ? getSubjectGradient(subject) : 'linear-gradient(90deg, #23272f 60%, #2d3748 100%)',
                 minHeight: '140px',
                 padding: '2rem 2.5rem',
                 position: 'relative',
