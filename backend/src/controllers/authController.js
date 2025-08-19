@@ -72,7 +72,7 @@ exports.login = async (req, res) => {
 
     // Admin login (hardcoded)
     if (role === 'Admin') {
-        if (adminId === '9534495027' && password === '1234') {
+        if (adminId === 'ADMIN' && password === '1234') {
             // Generate real JWT token for admin
             const token = jwt.sign({ id: 'admin', role: 'Admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
             return res.status(200).json({ token, user: { name: 'Admin', role: 'Admin' } });
