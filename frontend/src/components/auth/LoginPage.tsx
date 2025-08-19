@@ -426,7 +426,7 @@ export default function LoginPage() {
             <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight" style={{ fontWeight: 900 }}>
-            Tagore Public School
+            TAGORE PUBLIC SCHOOL
           </h1>
           <p className="text-muted-foreground mt-2">School Management System</p>
         </div>
@@ -493,43 +493,43 @@ export default function LoginPage() {
                     type="button"
                     variant={role === 'student' ? 'default' : 'outline'}
                     onClick={() => handleRoleButton('student')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150
                       ${role === 'student' ? 'bg-[#3366e7] text-white shadow-md' : 'bg-white text-[#222] border border-gray-200'}
                     `}
                     style={{
-                      minWidth: 120,
-                      minHeight: 48,
+                      minWidth: 90,
+                      minHeight: 38,
                     }}
                   >
-                    <GraduationCap className="w-5 h-5" /> Student
+                    <GraduationCap className="w-4 h-4" /> Student
                   </Button>
                   <Button
                     type="button"
                     variant={role === 'faculty' ? 'default' : 'outline'}
                     onClick={() => handleRoleButton('faculty')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150
                       ${role === 'faculty' ? 'bg-[#f5f6fa] border border-[#3366e7] text-[#222]' : 'bg-white text-[#222] border border-gray-200'}
                     `}
                     style={{
-                      minWidth: 120,
-                      minHeight: 48,
+                      minWidth: 90,
+                      minHeight: 38,
                     }}
                   >
-                    <Users className="w-5 h-5" /> Faculty
+                    <Users className="w-4 h-4" /> Faculty
                   </Button>
                   <Button
                     type="button"
                     variant={role === 'admin' ? 'default' : 'outline'}
                     onClick={() => handleRoleButton('admin')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-150
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150
                       ${role === 'admin' ? 'bg-[#f5f6fa] border border-[#3366e7] text-[#222]' : 'bg-white text-[#222] border border-gray-200'}
                     `}
                     style={{
-                      minWidth: 120,
-                      minHeight: 48,
+                      minWidth: 90,
+                      minHeight: 38,
                     }}
                   >
-                    <Settings className="w-5 h-5" /> Admin
+                    <Settings className="w-4 h-4" /> Admin
                   </Button>
                 </div>
               </div>
