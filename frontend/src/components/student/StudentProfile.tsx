@@ -166,42 +166,72 @@ export default function StudentProfile() {
     <div className="min-h-screen bg-background">
       <AppHeader title="Profile" />
       <div className="p-4 pb-20 space-y-6">
-        <Card className="bg-gradient-card shadow-card">
+        <Card
+          className="shadow-card"
+          style={{
+            background: "#fffde7",
+            color: "#333",
+            border: "none"
+          }}
+        >
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <Avatar className="w-20 h-20">
                 <AvatarImage src={display.profilePicture} alt={display.name} />
-                <AvatarFallback className="text-lg">
+                <AvatarFallback className="text-lg" style={{ background: "#fff", color: "#3556b0" }}>
                   {display.name?.split(' ').map((n: string) => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold text-foreground mb-1">{display.name}</h2>
-                  <Button size="sm" variant="outline" onClick={handleEditProfileOpen}>
+                  <h2
+                    className="text-xl font-bold mb-1"
+                    style={{
+                      color: "#ff9800", // Orange for name
+                      textShadow: "0 1px 8px #fffde7, 0 1px 1px #ffd54f"
+                    }}
+                  >
+                    {display.name}
+                  </h2>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleEditProfileOpen}
+                    style={{
+                      background: "#fff",
+                      color: "#3556b0",
+                      borderColor: "#ffd54f"
+                    }}
+                  >
                     Edit Profile
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
+                <div className="grid grid-cols-1 gap-2 text-sm">
                   {display.fatherName && (
                     <div className="flex items-center gap-2">
-                      <Home className="w-4 h-4" />
-                      <span>Father: {display.fatherName}</span>
+                      <Home className="w-4 h-4" style={{ color: "#ffb300" }} />
+                      <span style={{ color: "#8d6e63", fontWeight: 500 }}>
+                        Father: <span style={{ color: "#6d4c41" }}>{display.fatherName}</span>
+                      </span>
                     </div>
                   )}
                   {display.address && (
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{display.address}</span>
+                      <MapPin className="w-4 h-4" style={{ color: "#43a047" }} />
+                      <span style={{ color: "#388e3c", fontWeight: 500 }}>{display.address}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4" />
-                    <span>{display.class || display.className} • Roll No: {display.rollNo}</span>
+                    <GraduationCap className="w-4 h-4" style={{ color: "#1976d2" }} />
+                    <span style={{ color: "#1976d2", fontWeight: 500 }}>
+                      {display.class || display.className}
+                      <span style={{ color: "#333", fontWeight: 400 }}> • Roll No: </span>
+                      <span style={{ color: "#d84315", fontWeight: 600 }}>{display.rollNo}</span>
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    <span>{display.mobileNo}</span>
+                    <Phone className="w-4 h-4" style={{ color: "#6d4c41" }} />
+                    <span style={{ color: "#6d4c41", fontWeight: 500 }}>{display.mobileNo}</span>
                   </div>
                 </div>
               </div>
