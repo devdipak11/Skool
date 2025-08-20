@@ -368,27 +368,6 @@ export default function StudentHome() {
       <AppHeader title="Tagore Public School" />
       
       <div className="p-4 pb-20 space-y-6">
-        {/* Student Stats and Upcoming - moved above My Subjects */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <Card className="bg-gradient-card shadow-card">
-            <CardContent className="p-4 text-center">
-              <BookOpen className="w-8 h-8 text-primary mx-auto mb-2" />
-              {loading ? (
-                <Loader2 className="animate-spin h-6 w-6 mx-auto" />
-              ) : (
-                <p className="text-2xl font-bold text-foreground">{enrolledSubjects.length}</p>
-              )}
-              <p className="text-sm text-muted-foreground">Subjects</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-card shadow-card">
-            <CardContent className="p-4 text-center">
-              <Clock className="w-8 h-8 text-accent mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">0</p>
-              <p className="text-sm text-muted-foreground">Upcoming</p>
-            </CardContent>
-          </Card>
-        </div>
         {/* Banner Carousel */}
         {banners.length > 0 && (
           <div
@@ -438,6 +417,28 @@ export default function StudentHome() {
             </Carousel>
           </div>
         )}
+
+        {/* Student Stats and Upcoming - moved just below Banner Carousel */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Card className="bg-gradient-card shadow-card">
+            <CardContent className="p-4 text-center">
+              <BookOpen className="w-8 h-8 text-primary mx-auto mb-2" />
+              {loading ? (
+                <Loader2 className="animate-spin h-6 w-6 mx-auto" />
+              ) : (
+                <p className="text-2xl font-bold text-foreground">{enrolledSubjects.length}</p>
+              )}
+              <p className="text-sm text-muted-foreground">Subjects</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-card shadow-card">
+            <CardContent className="p-4 text-center">
+              <Clock className="w-8 h-8 text-accent mx-auto mb-2" />
+              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-sm text-muted-foreground">Upcoming</p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Enrolled Subjects */}
         <div>
