@@ -183,6 +183,18 @@ export default function FacultyMarkAttendance() {
     doc.save(`attendance_report_${date}.pdf`);
   };
 
+  // Clear all attendance for current filtered students
+  const clearAttendance = () => {
+    // Only clear for students in the current filtered list
+    setAttendance(prev => {
+      const updated = { ...prev };
+      filteredStudents.forEach(s => {
+        delete updated[s._id || s.id];
+      });
+      return updated;
+    });
+  };
+
   // Stats
   const total = students.length;
   const present = Object.values(attendance).filter(v => v === 'Present').length;
@@ -336,10 +348,20 @@ export default function FacultyMarkAttendance() {
                     </div>
                   </div>
                 ))}
-                {/* Save Attendance button at the end */}
+                {/* Save & Clear Attendance buttons at the end */}
                 {filteredStudents.length > 0 && (
-                  <div className="flex justify-end pt-6 pb-24"> {/* Add pb-24 for bottom nav space */}
-                    <Button onClick={saveAttendance} className="w-[200px] h-12 text-base font-semibold">
+                  <div className="flex justify-end pt-6 pb-24 gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={clearAttendance}
+                      className="w-[160px] h-12 text-base font-semibold"
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      onClick={saveAttendance}
+                      className="w-[200px] h-12 text-base font-semibold"
+                    >
                       Save Attendance
                     </Button>
                   </div>
