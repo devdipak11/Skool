@@ -295,7 +295,6 @@ export default function FacultyMarkAttendance() {
         <Card>
           <CardHeader>
             <CardTitle>Students Attendance</CardTitle>
-            <Button className="ml-auto" onClick={saveAttendance}>Save Attendance</Button>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -337,6 +336,14 @@ export default function FacultyMarkAttendance() {
                     </div>
                   </div>
                 ))}
+                {/* Save Attendance button at the end */}
+                {filteredStudents.length > 0 && (
+                  <div className="flex justify-end pt-6 pb-24"> {/* Add pb-24 for bottom nav space */}
+                    <Button onClick={saveAttendance} className="w-[200px] h-12 text-base font-semibold">
+                      Save Attendance
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
