@@ -15,8 +15,11 @@ import {
   MessageSquare,
   Calendar,
   Clock,
-  Search
+  Search,
+  Download
 } from 'lucide-react';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -221,6 +224,35 @@ export default function SubjectManagement() {
     }
   };
 
+  // Export subjects as PDF
+  const handleExportReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Subjects Report", 14, 16);
+    const tableColumn = [
+      "Name",
+      "Code",
+      "Class",
+      "Teacher Name"
+    ];
+    const tableRows: any[] = [];
+    subjects.forEach((subject: any) => {
+      tableRows.push([
+        subject.name,
+        subject.code,
+        subject.className,
+        subject.faculty?.name || subject.teacherName || "-"
+      ]);
+    });
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 24,
+      styles: { fontSize: 10 }
+    });
+    doc.save("subjects_report.pdf");
+  };
+
   // Filtered subjects
   const filteredSubjects = subjects.filter(subject => {
     const matchesSearch =
@@ -237,89 +269,102 @@ export default function SubjectManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Subject Management</h1>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Subject
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Subject</DialogTitle>
-              <DialogDescription>
-                Add a new subject with teacher assignment
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subjectName">Subject Name</Label>
-                <Input
-                  id="subjectName"
-                  placeholder="e.g., Advanced Calculus"
-                  value={newSubject.name}
-                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="subjectCode">Subject Code</Label>
-                <Input
-                  id="subjectCode"
-                  placeholder="e.g., MATH301"
-                  value={newSubject.code}
-                  onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="className">Class</Label>
-                <Input
-                  id="className"
-                  placeholder="e.g., Grade 12-A"
-                  value={newSubject.className}
-                  onChange={(e) => setNewSubject({ ...newSubject, className: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="teacherName">Teacher Name</Label>
-                <select
-                  id="teacherName"
-                  value={newSubject.teacherName}
-                  onChange={e => setNewSubject({ ...newSubject, teacherName: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
-                >
-                  <option value="">-- No Teacher Assigned --</option>
-                  {faculties.map(f => (
-                    <option key={f._id} value={f.name}>{f.name}</option>
-                  ))}
-                </select>
-                <div className="flex items-center mt-2">
-                  <input
-                    id="isClassTeacher"
-                    type="checkbox"
-                    className="mr-2"
-                    checked={newSubject.isClassTeacher}
-                    disabled={!newSubject.teacherName}
-                    onChange={e => setNewSubject({ ...newSubject, isClassTeacher: e.target.checked })}
+        <div className="flex gap-2">
+          {/* Ensure Export Report button is always visible and styled */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportReport}
+            style={{ background: '#e0f7fa', border: '1px solid #00bcd4' }} // Debug: highlight button
+            data-testid="export-report-btn"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Subject
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Subject</DialogTitle>
+                <DialogDescription>
+                  Add a new subject with teacher assignment
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="subjectName">Subject Name</Label>
+                  <Input
+                    id="subjectName"
+                    placeholder="e.g., Advanced Calculus"
+                    value={newSubject.name}
+                    onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
                   />
-                  <Label htmlFor="isClassTeacher" className="text-sm">Mark as Class Teacher</Label>
                 </div>
-                <span className="text-xs text-muted-foreground">You can also assign a teacher later by editing the subject.</span>
+                <div>
+                  <Label htmlFor="subjectCode">Subject Code</Label>
+                  <Input
+                    id="subjectCode"
+                    placeholder="e.g., MATH301"
+                    value={newSubject.code}
+                    onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="className">Class</Label>
+                  <Input
+                    id="className"
+                    placeholder="e.g., Grade 12-A"
+                    value={newSubject.className}
+                    onChange={(e) => setNewSubject({ ...newSubject, className: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="teacherName">Teacher Name</Label>
+                  <select
+                    id="teacherName"
+                    value={newSubject.teacherName}
+                    onChange={e => setNewSubject({ ...newSubject, teacherName: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
+                  >
+                    <option value="">-- No Teacher Assigned --</option>
+                    {faculties.map(f => (
+                      <option key={f._id} value={f.name}>{f.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center mt-2">
+                    <input
+                      id="isClassTeacher"
+                      type="checkbox"
+                      className="mr-2"
+                      checked={newSubject.isClassTeacher}
+                      disabled={!newSubject.teacherName}
+                      onChange={e => setNewSubject({ ...newSubject, isClassTeacher: e.target.checked })}
+                    />
+                    <Label htmlFor="isClassTeacher" className="text-sm">Mark as Class Teacher</Label>
+                  </div>
+                  <span className="text-xs text-muted-foreground">You can also assign a teacher later by editing the subject.</span>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleCreateSubject} className="flex-1">
+                    Create Subject
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsCreateDialogOpen(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleCreateSubject} className="flex-1">
-                  Create Subject
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search Bar */}

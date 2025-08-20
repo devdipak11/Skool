@@ -62,6 +62,94 @@ exports.getStudentById = async (req, res) => {
     }
 };
 
+// Add a new student (admin)
+exports.createStudent = async (req, res) => {
+    try {
+        const { name, class: studentClass, rollNo, mobileNo, password } = req.body;
+        if (!name || !studentClass || !rollNo) {
+            return res.status(400).json({ message: 'Name, class, and rollNo are required.' });
+        }
+        // Only block if rollNo and class are both the same (rollNo unique within class)
+        const existing = await Student.findOne({ rollNo, class: studentClass });
+        if (existing) {
+            return res.status(409).json({ message: 'Student with this roll number already exists in this class.' });
+        }
+        // If mobileNo is provided, check for duplicate mobileNo
+        if (mobileNo) {
+            const mobileExists = await Student.findOne({ mobileNo });
+            if (mobileExists) {
+                return res.status(409).json({ message: 'Student with this mobile number already exists.' });
+            }
+        }
+        // Hash password if provided, else generate a random one
+        const bcrypt = require('bcrypt');
+        let hashedPassword;
+        if (password) {
+            hashedPassword = await bcrypt.hash(password, 10);
+        } else {
+            // Generate a random 8-character password
+            const randomPass = Math.random().toString(36).slice(-8);
+            hashedPassword = await bcrypt.hash(randomPass, 10);
+        }
+        const newStudent = new Student({
+            name,
+            class: studentClass,
+            rollNo,
+            password: hashedPassword,
+            approved: true,
+            ...(mobileNo ? { mobileNo } : {})
+        });
+        await newStudent.save();
+        res.status(201).json({ message: 'Student created successfully', student: { _id: newStudent._id, name: newStudent.name, class: newStudent.class, rollNo: newStudent.rollNo, mobileNo: newStudent.mobileNo, approved: newStudent.approved } });
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating student', error });
+    }
+};
+
+// Edit student details (admin)
+exports.editStudent = async (req, res) => {
+    const { id } = req.params;
+    const { name, class: studentClass, rollNo, mobileNo, fatherName, address } = req.body;
+    try {
+        const student = await Student.findById(id);
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // If rollNo or class is being changed, check for duplicate rollNo in class
+        if (
+            (rollNo && rollNo !== student.rollNo) ||
+            (studentClass && studentClass !== student.class)
+        ) {
+            const exists = await Student.findOne({
+                _id: { $ne: id },
+                rollNo: rollNo || student.rollNo,
+                class: studentClass || student.class
+            });
+            if (exists) {
+                return res.status(409).json({ message: 'Student with this roll number already exists in this class.' });
+            }
+        }
+        // If mobileNo is being changed, check for duplicate mobileNo
+        if (mobileNo && mobileNo !== student.mobileNo) {
+            const exists = await Student.findOne({ _id: { $ne: id }, mobileNo });
+            if (exists) {
+                return res.status(409).json({ message: 'Student with this mobile number already exists.' });
+            }
+        }
+
+        if (name !== undefined) student.name = name;
+        if (studentClass !== undefined) student.class = studentClass;
+        if (rollNo !== undefined) student.rollNo = rollNo;
+        if (mobileNo !== undefined) student.mobileNo = mobileNo;
+        if (fatherName !== undefined) student.fatherName = fatherName;
+        if (address !== undefined) student.address = address;
+
+        await student.save();
+        res.status(200).json({ message: 'Student updated successfully', student });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating student', error });
+    }
+};
+
 // Approve a student registration request
 exports.approveStudent = async (req, res) => {
     const { id } = req.params; // changed from studentId to id for consistency with route
@@ -87,8 +175,6 @@ exports.disapproveStudent = async (req, res) => {
         res.status(500).json({ message: 'Error disapproving student', error });
     }
 };
-
-
 
 // Delete a student
 exports.deleteStudent = async (req, res) => {
@@ -327,9 +413,6 @@ exports.uploadResults = async (req, res) => {
         res.status(500).json({ message: 'Error uploading results', error });
     }
 };
-
-
-
 
 // Results Management
 exports.getAllResults = async (req, res) => { res.status(501).json({ message: 'Not implemented' }); };

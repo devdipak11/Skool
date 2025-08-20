@@ -188,14 +188,22 @@ export default function FacultyMarkAttendance() {
   const present = Object.values(attendance).filter(v => v === 'Present').length;
   const absent = Object.values(attendance).filter(v => v === 'Absent').length;
 
-  // Filtered students
-  const filteredStudents = students.filter(s => {
-    const matchesSearch = (s.name?.toLowerCase() || '').includes(search.toLowerCase()) || (s.rollNo || '').includes(search);
-    const status = attendance[s._id || s.id];
-    if (filter === 'present' && status !== 'Present') return false;
-    if (filter === 'absent' && status !== 'Absent') return false;
-    return matchesSearch;
-  });
+  // Filtered students (sorted by rollNo ascending)
+  const filteredStudents = students
+    .slice()
+    .sort((a, b) => {
+      const rollA = parseInt(a.rollNo, 10);
+      const rollB = parseInt(b.rollNo, 10);
+      if (!isNaN(rollA) && !isNaN(rollB)) return rollA - rollB;
+      return (a.rollNo || '').localeCompare(b.rollNo || '');
+    })
+    .filter(s => {
+      const matchesSearch = (s.name?.toLowerCase() || '').includes(search.toLowerCase()) || (s.rollNo || '').includes(search);
+      const status = attendance[s._id || s.id];
+      if (filter === 'present' && status !== 'Present') return false;
+      if (filter === 'absent' && status !== 'Absent') return false;
+      return matchesSearch;
+    });
 
   // Toggle attendance
   const toggleAttendance = (studentId: string, status: 'Present' | 'Absent') => {

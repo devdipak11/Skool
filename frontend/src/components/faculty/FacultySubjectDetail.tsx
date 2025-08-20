@@ -55,6 +55,7 @@ export default function SubjectDetail() {
   const [editCommentId, setEditCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [students, setStudents] = useState<any[]>([]);
+  const [showAllStudents, setShowAllStudents] = useState(false);
 
   // Fetch subject details and announcements
   useEffect(() => {
@@ -373,16 +374,31 @@ export default function SubjectDetail() {
         <CardContent className="py-4 px-6">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-semibold text-lg">Enrolled Students <span className="text-xs text-muted-foreground">({students.length})</span></span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAllStudents((prev: boolean) => !prev)}
+              className="ml-2"
+            >
+              {showAllStudents ? 'Hide List' : 'See All Students'}
+            </Button>
           </div>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-            {students.map((s: any) => (
-              <li key={s._id || s.id} className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-foreground">{s.name}</span>
-                <span className="text-xs text-muted-foreground">({s.rollNo})</span>
-              </li>
-            ))}
-            {students.length === 0 && <li className="text-muted-foreground text-sm">No students enrolled.</li>}
-          </ul>
+          {showAllStudents && (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+              {[...students].sort((a, b) => {
+                const rollA = parseInt(a.rollNo, 10);
+                const rollB = parseInt(b.rollNo, 10);
+                if (!isNaN(rollA) && !isNaN(rollB)) return rollA - rollB;
+                return (a.rollNo || '').localeCompare(b.rollNo || '');
+              }).map((s: any) => (
+                <li key={s._id || s.id} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-foreground">{s.name}</span>
+                  <span className="text-xs text-muted-foreground">({s.rollNo})</span>
+                </li>
+              ))}
+              {students.length === 0 && <li className="text-muted-foreground text-sm">No students enrolled.</li>}
+            </ul>
+          )}
         </CardContent>
       </Card>
       {/* New Announcement */}

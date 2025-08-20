@@ -22,6 +22,12 @@ router.get('/dashboard-counts', authMiddleware, roleMiddleware('Admin'), adminCo
 router.get('/students', authMiddleware, roleMiddleware('Admin'), adminController.getAllStudents);
 router.get('/students/:id', authMiddleware, roleMiddleware('Admin'), adminController.getStudentById);
 
+// Add new student (admin)
+router.post('/students', authMiddleware, roleMiddleware('Admin'), adminController.createStudent);
+
+// Edit student (admin)
+router.put('/students/:id', authMiddleware, roleMiddleware('Admin'), adminController.editStudent);
+
 router.delete('/students/:id', authMiddleware, roleMiddleware('Admin'), adminController.deleteStudent);
 router.post('/students/approve/:id', authMiddleware, roleMiddleware('Admin'), adminController.approveStudent);
 router.delete('/students/disapprove/:id', authMiddleware, roleMiddleware('Admin'), adminController.disapproveStudent);
