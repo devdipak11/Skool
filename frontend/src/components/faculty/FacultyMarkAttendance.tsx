@@ -40,6 +40,24 @@ export default function FacultyMarkAttendance() {
   const [month, setMonth] = useState(String(new Date().getMonth() + 1));
   const [year, setYear] = useState(String(new Date().getFullYear()));
 
+  // Use localStorage to persist selected date
+  useEffect(() => {
+    // On mount, load date from localStorage if exists
+    const savedDate = localStorage.getItem('faculty-attendance-date');
+    if (savedDate) {
+      setDate(savedDate);
+      setMonth(String(new Date(savedDate).getMonth() + 1));
+      setYear(String(new Date(savedDate).getFullYear()));
+    }
+  }, []);
+
+  // Save date to localStorage whenever it changes
+  useEffect(() => {
+    if (date) {
+      localStorage.setItem('faculty-attendance-date', date);
+    }
+  }, [date]);
+
   // Fetch subject and students
   useEffect(() => {
     const fetchClassTeacherSubject = async () => {
@@ -84,10 +102,11 @@ export default function FacultyMarkAttendance() {
         });
         if (res.ok) {
           const data = await res.json();
-          // Map: studentId -> status
-          const att: Record<string, 'Present' | 'Absent'> = {};
+          const att: Record<string, 'Present' | 'Absent' | undefined> = {};
           data.forEach((rec: any) => {
-            att[rec.student?._id || rec.student?.id || rec.student] = rec.status;
+            // If status is null/empty, treat as undefined (unmarked)
+            att[rec.student?._id || rec.student?.id || rec.student] =
+              rec.status === 'Present' || rec.status === 'Absent' ? rec.status : undefined;
           });
           setAttendance(att);
         } else {
@@ -125,9 +144,10 @@ export default function FacultyMarkAttendance() {
   // Save attendance to backend
   const saveAttendance = async () => {
     if (!subject?._id || !date) return;
+    // Save status as null if not marked
     const attendanceArr = students.map(s => ({
       studentId: s._id || s.id,
-      status: attendance[s._id || s.id] || 'Absent'
+      status: attendance[s._id || s.id] || null
     }));
     try {
       const res = await fetch(`${BACKEND_URL}/api/faculty/subjects/${subject._id}/attendance`, {
@@ -139,7 +159,6 @@ export default function FacultyMarkAttendance() {
         body: JSON.stringify({ date, attendance: attendanceArr }),
       });
       if (!res.ok) throw new Error('Failed to save attendance');
-      // Optionally show a toast or message
       alert('Attendance saved!');
     } catch (e: any) {
       alert(e.message || 'Error saving attendance');
@@ -183,22 +202,16 @@ export default function FacultyMarkAttendance() {
     doc.save(`attendance_report_${date}.pdf`);
   };
 
-  // Clear all attendance for current filtered students
+  // Clear all attendance for current filtered students (reset to unmarked)
   const clearAttendance = () => {
-    // Only clear for students in the current filtered list
     setAttendance(prev => {
       const updated = { ...prev };
       filteredStudents.forEach(s => {
-        delete updated[s._id || s.id];
+        updated[s._id || s.id] = undefined;
       });
       return updated;
     });
   };
-
-  // Stats
-  const total = students.length;
-  const present = Object.values(attendance).filter(v => v === 'Present').length;
-  const absent = Object.values(attendance).filter(v => v === 'Absent').length;
 
   // Filtered students (sorted by rollNo ascending)
   const filteredStudents = students
@@ -217,6 +230,11 @@ export default function FacultyMarkAttendance() {
       return matchesSearch;
     });
 
+  // Stats: count present/absent only for students in filteredStudents
+  const present = filteredStudents.filter(s => attendance[s._id || s.id] === 'Present').length;
+  const absent = filteredStudents.filter(s => attendance[s._id || s.id] === 'Absent').length;
+  const total = filteredStudents.length;
+
   // Toggle attendance
   const toggleAttendance = (studentId: string, status: 'Present' | 'Absent') => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -227,6 +245,7 @@ export default function FacultyMarkAttendance() {
     setDate(e.target.value);
     setMonth(String(new Date(e.target.value).getMonth() + 1));
     setYear(String(new Date(e.target.value).getFullYear()));
+    // No need to set localStorage here, handled by useEffect above
   };
 
   return (
@@ -322,15 +341,6 @@ export default function FacultyMarkAttendance() {
                     <div>
                       <p className="font-medium">{student.name}</p>
                       <p className="text-sm text-muted-foreground">{student.rollNo}</p>
-                      {/* Show timestamp if present */}
-                      {(() => {
-                        const attRec = Object.entries(attendance).find(([id]) => id === (student._id || student.id));
-                        if (attRec && attRec[1]) {
-                          // Find timestamp from attendance records if available
-                          // (You may extend this to show the real timestamp if you fetch it)
-                        }
-                        return null;
-                      })()}
                     </div>
                     <div className="flex gap-2">
                       <Button
