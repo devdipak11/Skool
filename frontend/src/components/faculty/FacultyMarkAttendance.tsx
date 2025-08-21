@@ -211,16 +211,32 @@ export default function FacultyMarkAttendance() {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text("Attendance Report", 14, 16);
-    const tableColumn = ["Name", "Roll No", "Status", "Marked At"];
+    const tableColumn = ["Name", "Roll No", "Class", "Status", "Marked At"];
     const tableRows: any[] = [];
-    students.forEach((student) => {
+    // Sort students by roll number ascending
+    const sortedStudents = students.slice().sort((a, b) => {
+      const rollA = parseInt(a.rollNo, 10);
+      const rollB = parseInt(b.rollNo, 10);
+      if (!isNaN(rollA) && !isNaN(rollB)) return rollA - rollB;
+      return (a.rollNo || '').localeCompare(b.rollNo || '');
+    });
+    sortedStudents.forEach((student) => {
       const rec = attendanceRecords.find(
         (r) => (r.student?._id || r.student?.id || r.student) === (student._id || student.id)
       );
+      let status = null;
+      if (rec) {
+        status = rec.status;
+      } else if (attendance[student._id || student.id]) {
+        status = attendance[student._id || student.id];
+      }
+      // If status is undefined or empty, show 'null'
+      if (!status) status = 'null';
       tableRows.push([
         student.name,
         student.rollNo,
-        rec ? rec.status : (attendance[student._id || student.id] || 'Absent'),
+        student.class || '',
+        status,
         rec && rec.markedAt ? new Date(rec.markedAt).toLocaleString() : "-"
       ]);
     });
