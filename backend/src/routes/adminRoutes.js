@@ -38,6 +38,8 @@ router.get('/students/search', authMiddleware, roleMiddleware('Admin'), adminCon
 // Fee status management for students (admin)
 router.get('/students/:studentId/fee-status', authMiddleware, roleMiddleware('Admin'), adminController.viewStudentMonthlyFeeStatus);
 router.put('/students/:studentId/fee-status', authMiddleware, roleMiddleware('Admin'), adminController.updateStudentMonthlyFeeStatus);
+// Admin: Get monthly attendance for a student (optionally by subject)
+router.get('/students/:studentId/attendance', authMiddleware, roleMiddleware('Admin'), adminController.getStudentMonthlyAttendance);
 
 // Manage Teachers
 router.get('/teachers', authMiddleware, roleMiddleware('Admin'), adminController.getAllTeachers);

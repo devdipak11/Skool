@@ -420,6 +420,29 @@ exports.viewMonthlyFeeStatus = async (req, res) => {
     }
 };
 
+// Get monthly attendance for student
+exports.getMonthlyAttendance = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { month, year } = req.query;
+        if (!month || !year) {
+            return res.status(400).json({ message: 'Month and year are required' });
+        }
+        const Attendance = require('../models/attendance.model');
+        // Find all attendance records for this student in the given month/year
+        const monthStr = month.padStart ? month.padStart(2, '0') : String(month).padStart(2, '0');
+        const regex = new RegExp(`^${year}-${monthStr}-\\d{2}$`);
+        const records = await Attendance.find({
+            student: studentId,
+            date: { $regex: regex }
+        }).select('date status -_id');
+        // Return as array: [{date: 'YYYY-MM-DD', status: 'Present'|'Absent'}]
+        res.status(200).json(records);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching attendance', error });
+    }
+};
+
 
 
 

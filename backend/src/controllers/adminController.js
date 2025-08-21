@@ -45,16 +45,16 @@ exports.getAllStudents = async (req, res) => {
     }
 };
 
-//view student details
+// ADMIN: View student details (with enrolled subjects)
 exports.getStudentById = async (req, res) => {
-    const { id } = req.params;
     try {
-        const student = await Student.findById(id);
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found' });
-        }
-        // Always show result as 'pass' by default
+        const student = await Student.findById(req.params.id)
+            .populate({ path: 'subjects', select: 'name code className faculty', populate: { path: 'faculty', select: 'name' } })
+            .select('-password');
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+        // Optionally, add result, fee info, etc.
         const studentObj = student.toObject();
+        // Add result status if needed (legacy)
         studentObj.result = 'pass';
         res.status(200).json(studentObj);
     } catch (error) {
@@ -217,6 +217,29 @@ exports.searchStudents = async (req, res) => {
         res.status(200).json(students);
     } catch (error) {
         res.status(500).json({ message: 'Error searching students', error });
+    }
+};
+
+// ADMIN: Get monthly attendance for a student (optionally for a subject)
+exports.getStudentMonthlyAttendance = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { month, year, subjectId } = req.query;
+        if (!month || !year) {
+            return res.status(400).json({ message: 'Month and year are required' });
+        }
+        const Attendance = require('../models/attendance.model');
+        const monthStr = month.padStart ? month.padStart(2, '0') : String(month).padStart(2, '0');
+        const regex = new RegExp(`^${year}-${monthStr}-\\d{2}$`);
+        const query = {
+            student: studentId,
+            date: { $regex: regex }
+        };
+        if (subjectId) query.subject = subjectId;
+        const records = await Attendance.find(query).select('date status subject -_id');
+        res.status(200).json(records);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching student attendance', error });
     }
 };
 

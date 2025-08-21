@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Plus, Users, Clock, BookOpen, Loader2, UserCircle, MoreVertical } from 'lucide-react';
+import { Plus, Users, Clock, BookOpen, Loader2, UserCircle, MoreVertical, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { mockBanners } from '@/data/mockData';
 import type { BannerItem } from '@/data/mockData';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,11 @@ export default function StudentHome() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, token } = useAuth();
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [attendanceMonth, setAttendanceMonth] = useState<number>(new Date().getMonth() + 1);
+  const [attendanceYear, setAttendanceYear] = useState<number>(new Date().getFullYear());
+  const [attendanceData, setAttendanceData] = useState<{ [date: string]: 'Present' | 'Absent' }>({});
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
 
   // Autoplay for banner carousel
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
@@ -230,6 +235,26 @@ export default function StudentHome() {
     }
   };
 
+  // Fetch attendance for selected month/year
+  useEffect(() => {
+    if (!attendanceDialogOpen || !token) return;
+    setAttendanceLoading(true);
+    fetch(`/api/students/attendance/monthly?month=${attendanceMonth}&year=${attendanceYear}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then((data) => {
+        // data: [{date: 'YYYY-MM-DD', status: 'Present'|'Absent'}]
+        const map = {};
+        data.forEach((rec: { date: string, status: 'Present' | 'Absent' }) => {
+          map[rec.date] = rec.status;
+        });
+        setAttendanceData(map);
+      })
+      .catch(() => setAttendanceData({}))
+      .finally(() => setAttendanceLoading(false));
+  }, [attendanceDialogOpen, attendanceMonth, attendanceYear, token]);
+
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -418,7 +443,7 @@ export default function StudentHome() {
           </div>
         )}
 
-        {/* Student Stats and Upcoming - moved just below Banner Carousel */}
+        {/* Student Stats and Attendance - moved just below Banner Carousel */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Card className="bg-gradient-card shadow-card">
             <CardContent className="p-4 text-center">
@@ -431,13 +456,130 @@ export default function StudentHome() {
               <p className="text-sm text-muted-foreground">Subjects</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-card shadow-card">
-            <CardContent className="p-4 text-center">
-              <Clock className="w-8 h-8 text-accent mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">0</p>
-              <p className="text-sm text-muted-foreground">Upcoming</p>
-            </CardContent>
-          </Card>
+          {/* Attendance Card */}
+          <Dialog open={attendanceDialogOpen} onOpenChange={setAttendanceDialogOpen}>
+            <DialogTrigger asChild>
+              <Card className="bg-gradient-card shadow-card cursor-pointer hover:shadow-lg transition">
+                <CardContent className="p-4 text-center flex flex-col items-center justify-center" onClick={() => setAttendanceDialogOpen(true)}>
+                  <Calendar className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-foreground">Your Attendance</p>
+                  <p className="text-sm text-muted-foreground">View attendance calendar</p>
+                </CardContent>
+              </Card>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Your Attendance</DialogTitle>
+                <DialogDescription>
+                  Select month and year to view your attendance.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-2 items-center mb-4">
+                <button
+                  className="p-2"
+                  onClick={() => setAttendanceMonth(m => m === 1 ? 12 : m - 1)}
+                  aria-label="Previous month"
+                >
+                  <ChevronLeft />
+                </button>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={attendanceMonth}
+                  onChange={e => setAttendanceMonth(Number(e.target.value))}
+                >
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={attendanceYear}
+                  onChange={e => setAttendanceYear(Number(e.target.value))}
+                >
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const year = new Date().getFullYear() - 2 + i;
+                    return (
+                      <option key={year} value={year}>{year}</option>
+                    );
+                  })}
+                </select>
+                <button
+                  className="p-2"
+                  onClick={() => setAttendanceMonth(m => m === 12 ? 1 : m + 1)}
+                  aria-label="Next month"
+                >
+                  <ChevronRight />
+                </button>
+              </div>
+              {/* Placeholder calendar */}
+              <div className="border rounded p-4 text-center text-muted-foreground">
+                <div>
+                  <span className="font-semibold">
+                    {new Date(attendanceYear, attendanceMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  {/* Calendar grid */}
+                  <div className="grid grid-cols-7 gap-1 text-xs font-medium mb-1">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d} className="py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 min-h-[180px]">
+                    {(() => {
+                      const days: JSX.Element[] = [];
+                      const firstDay = new Date(attendanceYear, attendanceMonth - 1, 1);
+                      const lastDay = new Date(attendanceYear, attendanceMonth, 0);
+                      const today = new Date();
+                      let dayOfWeek = firstDay.getDay();
+                      // Fill blanks for first week
+                      for (let i = 0; i < dayOfWeek; i++) {
+                        days.push(<div key={"empty-" + i} />);
+                      }
+                      for (let d = 1; d <= lastDay.getDate(); d++) {
+                        const dateStr = `${attendanceYear}-${String(attendanceMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const status = attendanceData[dateStr];
+                        const isToday =
+                          d === today.getDate() &&
+                          attendanceMonth === today.getMonth() + 1 &&
+                          attendanceYear === today.getFullYear();
+                        const isSunday = new Date(attendanceYear, attendanceMonth - 1, d).getDay() === 0;
+                        let bg = '';
+                        let text = '';
+                        if (isSunday) {
+                          bg = 'bg-blue-200';
+                          text = 'text-blue-900 font-bold';
+                        }
+                        if (status === 'Present') {
+                          bg = 'bg-green-200';
+                          text = 'text-green-900 font-bold';
+                        } else if (status === 'Absent') {
+                          bg = 'bg-red-200';
+                          text = 'text-red-900 font-bold';
+                        }
+                        if (isToday) {
+                          bg += ' ring-2 ring-yellow-400';
+                        }
+                        days.push(
+                          <div
+                            key={d}
+                            className={`py-1 rounded-full transition ${bg} ${text}`}
+                            title={status ? `Marked ${status}` : isSunday ? 'Sunday' : ''}
+                          >
+                            {d}
+                          </div>
+                        );
+                      }
+                      return days;
+                    })()}
+                  </div>
+                  {attendanceLoading && <div className="mt-4 text-xs text-muted-foreground">Loading attendance...</div>}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Enrolled Subjects */}

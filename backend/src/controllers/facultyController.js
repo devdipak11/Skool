@@ -51,15 +51,20 @@ exports.getStudentsOfSubject = async (req, res) => {
     try {
         const facultyId = req.user.id;
         const { subjectId } = req.params;
+        const Student = require('../models/Student');
 
         // Ensure the subject is assigned to this faculty
         const subject = await Subject.findOne({ _id: subjectId, faculty: facultyId });
-        if (!subject) {
-            return res.status(404).json({ message: 'Subject not found or not assigned to you' });
-        }
+        if (!subject) return res.status(404).json({ message: 'Subject not found or not assigned to you' });
 
-        // Find students registered in this subject
-        const students = await require('../models/Student').find({ subjects: subjectId }).select('name rollNo');
+        let students;
+        if (subject.isClassTeacher && subject.className) {
+            // If class teacher, fetch all students in the class
+            students = await Student.find({ class: subject.className, approved: true }).select('name rollNo class');
+        } else {
+            // Otherwise, fetch students enrolled in this subject
+            students = await Student.find({ subjects: subjectId, approved: true }).select('name rollNo class');
+        }
         res.status(200).json(students);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching students', error });
@@ -321,6 +326,34 @@ exports.getAttendanceForSubjectDate = async (req, res) => {
         res.status(200).json(records);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching attendance', error });
+    }
+};
+
+// Get monthly attendance for a student in a subject (for faculty)
+exports.getStudentMonthlyAttendance = async (req, res) => {
+    try {
+        const facultyId = req.user.id;
+        const { studentId } = req.params;
+        const { subjectId, month, year } = req.query;
+        if (!studentId || !subjectId || !month || !year) {
+            return res.status(400).json({ message: 'studentId, subjectId, month, and year are required' });
+        }
+        // Ensure faculty is assigned to this subject
+        const subject = await Subject.findOne({ _id: subjectId, faculty: facultyId });
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found or not assigned to you' });
+        }
+        const Attendance = require('../models/attendance.model');
+        const monthStr = month.padStart ? month.padStart(2, '0') : String(month).padStart(2, '0');
+        const regex = new RegExp(`^${year}-${monthStr}-\\d{2}$`);
+        const records = await Attendance.find({
+            student: studentId,
+            subject: subjectId,
+            date: { $regex: regex }
+        }).select('date status -_id');
+        res.status(200).json(records);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching student attendance', error });
     }
 };
 

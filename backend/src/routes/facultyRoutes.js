@@ -48,4 +48,7 @@ router.post('/announcements/:announcementId/comments', ...roleFaculty, facultyCo
 router.post('/subjects/:subjectId/attendance', authMiddleware, roleMiddleware('Faculty'), facultyController.markAttendance);
 router.get('/subjects/:subjectId/attendance', authMiddleware, roleMiddleware('Faculty'), facultyController.getAttendanceForSubjectDate);
 
+// Faculty: Get monthly attendance for a student in a subject
+router.get('/student/:studentId/attendance', authMiddleware, roleMiddleware('Faculty'), facultyController.getStudentMonthlyAttendance);
+
 module.exports = router;

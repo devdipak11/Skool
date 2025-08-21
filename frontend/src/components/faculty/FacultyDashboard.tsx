@@ -175,22 +175,22 @@ export default function FacultyDashboard() {
           >
             <CardContent className="p-4 text-center">
               <FileText className="w-8 h-8 text-primary mx-auto mb-2" />
-              {/* Find class teacher subject */}
+              {/* Show all class teacher classes */}
               {(() => {
-                const classTeacherSubject = assignedSubjects.find(
+                const classTeacherSubjects = assignedSubjects.filter(
                   (s) => s.isClassTeacher
                 );
-                if (classTeacherSubject) {
+                if (classTeacherSubjects.length > 0) {
                   return (
                     <>
                       <div className="text-base font-medium text-foreground mb-1">
                         Mark Attendance
                       </div>
                       <div className="text-lg font-semibold text-foreground">
-                        {classTeacherSubject.faculty?.name || "Faculty Name"}
+                        {classTeacherSubjects[0].faculty?.name || "Faculty Name"}
                       </div>
                       <div className="text-base text-muted-foreground mt-1">
-                        {classTeacherSubject.className}
+                        {classTeacherSubjects.map(s => s.className).join(', ')}
                       </div>
                     </>
                   );

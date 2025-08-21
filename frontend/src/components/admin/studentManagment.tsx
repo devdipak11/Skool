@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import { Edit, Trash2, Search, Eye, Check, X, Plus } from 'lucide-react';
+import { Edit, Trash2, Search, Eye, Check, X, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -224,6 +224,72 @@ export default function StudentManagement() {
     doc.save("students_report.pdf");
   };
 
+  // --- Attendance Modal State ---
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [attendanceStudent, setAttendanceStudent] = useState<any>(null);
+  const [attendanceMonth, setAttendanceMonth] = useState<number>(new Date().getMonth() + 1);
+  const [attendanceYear, setAttendanceYear] = useState<number>(new Date().getFullYear());
+  const [attendanceSubjectId, setAttendanceSubjectId] = useState<string>('all');
+  const [attendanceData, setAttendanceData] = useState<{ [date: string]: 'Present' | 'Absent' }>({});
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [enrolledSubjects, setEnrolledSubjects] = useState<any[]>([]);
+
+  // Open attendance modal and fetch details
+  const handleOpenAttendanceModal = async (student: any) => {
+    setAttendanceStudent(student);
+    setAttendanceMonth(new Date().getMonth() + 1);
+    setAttendanceYear(new Date().getFullYear());
+    setAttendanceSubjectId('all');
+    setAttendanceModalOpen(true);
+    setAttendanceData({});
+    setEnrolledSubjects([]);
+    // Fetch student details (with enrolled subjects)
+    try {
+      const authToken = token || localStorage.getItem('token');
+      const res = await axios.get(`/api/admin/students/${student._id || student.id}`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
+      setEnrolledSubjects(res.data?.subjects || []); // <-- FIX: use .subjects
+    } catch {}
+    // Fetch attendance
+    fetchAttendance(student._id || student.id, new Date().getMonth() + 1, new Date().getFullYear(), 'all');
+  };
+
+  // Fetch attendance for student/month/year/subject
+  const fetchAttendance = async (studentId: string, month: number, year: number, subjectId: string) => {
+    setAttendanceLoading(true);
+    setAttendanceData({});
+    try {
+      const authToken = token || localStorage.getItem('token');
+      let url = `/api/admin/students/${studentId}/attendance?month=${month}&year=${year}`;
+      if (subjectId && subjectId !== 'all') url += `&subjectId=${subjectId}`;
+      const res = await axios.get(url, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
+      // data: [{date: 'YYYY-MM-DD', status: 'Present'|'Absent'}]
+      const map: { [date: string]: 'Present' | 'Absent' } = {};
+      (res.data || []).forEach((rec: { date: string, status: 'Present' | 'Absent' }) => {
+        map[rec.date] = rec.status;
+      });
+      setAttendanceData(map);
+    } catch {
+      setAttendanceData({});
+    }
+    setAttendanceLoading(false);
+  };
+
+  // Handle month/year/subject change
+  useEffect(() => {
+    if (!attendanceModalOpen || !attendanceStudent) return;
+    fetchAttendance(
+      attendanceStudent._id || attendanceStudent.id,
+      attendanceMonth,
+      attendanceYear,
+      attendanceSubjectId
+    );
+    // eslint-disable-next-line
+  }, [attendanceModalOpen, attendanceMonth, attendanceYear, attendanceSubjectId]);
+
   // Search and class filter with roll number sorting
   const filteredStudents = students
     .filter(student => {
@@ -309,7 +375,7 @@ export default function StudentManagement() {
                         </Button>
                       </>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDetails(student)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenAttendanceModal(student)}>
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEditStudent(student)}>
@@ -458,6 +524,171 @@ export default function StudentManagement() {
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
                   Cancel
                 </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Attendance Modal */}
+      <Dialog open={attendanceModalOpen} onOpenChange={setAttendanceModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Attendance Calendar</DialogTitle>
+            <DialogDescription>
+              View attendance for {attendanceStudent?.name}. Select month, year, and subject.
+            </DialogDescription>
+          </DialogHeader>
+          {attendanceStudent && (
+            <div className="space-y-4">
+              {/* Student Info */}
+              <div className="flex flex-col gap-2 border-b pb-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={attendanceStudent.profilePicture} />
+                    <AvatarFallback>{attendanceStudent.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-semibold text-lg">{attendanceStudent.name}</div>
+                    <div className="text-xs text-muted-foreground">Class: {attendanceStudent.class || attendanceStudent.className} &nbsp;|&nbsp; Roll No: {attendanceStudent.rollNo}</div>
+                    <div className="text-xs text-muted-foreground">Father's Name: {attendanceStudent.fatherName || attendanceStudent.parentsName || '-'}</div>
+                    <div className="text-xs text-muted-foreground">Mobile: {attendanceStudent.mobileNo || '-'}</div>
+                  </div>
+                </div>
+                {/* Enrolled Subjects List */}
+                <div className="mt-2">
+                  <div className="font-medium mb-1 text-sm">Enrolled Subjects</div>
+                  {enrolledSubjects.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">No subjects enrolled.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {enrolledSubjects.map((sub: any) => (
+                        <div key={sub._id || sub.id} className="px-3 py-1 rounded-full bg-muted text-xs font-medium border flex items-center gap-1">
+                          <span>{sub.name}</span>
+                          {sub.faculty?.name && <span className="text-muted-foreground">({sub.faculty.name})</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Subject Filter Dropdown */}
+              <div>
+                <Label>Subject</Label>
+                <select
+                  className="border rounded px-2 py-1 w-full mt-1"
+                  value={attendanceSubjectId}
+                  onChange={e => setAttendanceSubjectId(e.target.value)}
+                >
+                  <option value="all">All Subjects</option>
+                  {enrolledSubjects.map((sub: any) => (
+                    <option key={sub._id || sub.id} value={sub._id || sub.id}>
+                      {sub.name} {sub.faculty?.name ? `- ${sub.faculty.name}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Month/Year Selectors */}
+              <div className="flex gap-2 items-center mb-2">
+                <button
+                  className="p-2"
+                  onClick={() => setAttendanceMonth(m => m === 1 ? 12 : m - 1)}
+                  aria-label="Previous month"
+                >
+                  <ChevronLeft />
+                </button>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={attendanceMonth}
+                  onChange={e => setAttendanceMonth(Number(e.target.value))}
+                >
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={attendanceYear}
+                  onChange={e => setAttendanceYear(Number(e.target.value))}
+                >
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const year = new Date().getFullYear() - 2 + i;
+                    return (
+                      <option key={year} value={year}>{year}</option>
+                    );
+                  })}
+                </select>
+                <button
+                  className="p-2"
+                  onClick={() => setAttendanceMonth(m => m === 12 ? 1 : m + 1)}
+                  aria-label="Next month"
+                >
+                  <ChevronRight />
+                </button>
+              </div>
+              {/* Calendar Grid */}
+              <div className="border rounded p-4 text-center text-muted-foreground">
+                <div>
+                  <span className="font-semibold">
+                    {new Date(attendanceYear, attendanceMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="grid grid-cols-7 gap-1 text-xs font-medium mb-1">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d} className="py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 min-h-[180px]">
+                    {(() => {
+                      const days: JSX.Element[] = [];
+                      const firstDay = new Date(attendanceYear, attendanceMonth - 1, 1);
+                      const lastDay = new Date(attendanceYear, attendanceMonth, 0);
+                      const today = new Date();
+                      let dayOfWeek = firstDay.getDay();
+                      for (let i = 0; i < dayOfWeek; i++) {
+                        days.push(<div key={"empty-" + i} />);
+                      }
+                      for (let d = 1; d <= lastDay.getDate(); d++) {
+                        const dateStr = `${attendanceYear}-${String(attendanceMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const status = attendanceData[dateStr];
+                        const isToday =
+                          d === today.getDate() &&
+                          attendanceMonth === today.getMonth() + 1 &&
+                          attendanceYear === today.getFullYear();
+                        const isSunday = new Date(attendanceYear, attendanceMonth - 1, d).getDay() === 0;
+                        let bg = '';
+                        let text = '';
+                        if (isSunday) {
+                          bg = 'bg-blue-200';
+                          text = 'text-blue-900 font-bold';
+                        }
+                        if (status === 'Present') {
+                          bg = 'bg-green-200';
+                          text = 'text-green-900 font-bold';
+                        } else if (status === 'Absent') {
+                          bg = 'bg-red-200';
+                          text = 'text-red-900 font-bold';
+                        }
+                        if (isToday) {
+                          bg += ' ring-2 ring-yellow-400';
+                        }
+                        days.push(
+                          <div
+                            key={d}
+                            className={`py-1 rounded-full transition ${bg} ${text}`}
+                            title={status ? `Marked ${status}` : isSunday ? 'Sunday' : ''}
+                          >
+                            {d}
+                          </div>
+                        );
+                      }
+                      return days;
+                    })()}
+                  </div>
+                  {attendanceLoading && <div className="mt-4 text-xs text-muted-foreground">Loading attendance...</div>}
+                </div>
               </div>
             </div>
           )}

@@ -40,4 +40,7 @@ router.delete('/comments/:commentId', authMiddleware, studentController.deletePo
 router.get('/fees/monthly-amount', authMiddleware, studentController.viewMonthlyFeeAmount);
 router.get('/fees/monthly-status', authMiddleware, studentController.viewMonthlyFeeStatus);
 
+// Get monthly attendance for student
+router.get('/attendance/monthly', authMiddleware, studentController.getMonthlyAttendance);
+
 module.exports = router;
